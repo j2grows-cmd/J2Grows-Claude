@@ -1,5 +1,5 @@
 -- J2Grows: cloud saves (signed-in players only) and anonymous, opt-in progress statistics.
--- NOT applied automatically. Review, then run it in the Supabase SQL editor (or `supabase db push`).
+-- Applied to the project on 2026-11-06. Re-running it is safe.
 -- Auth: enable "Email" sign-in with one-time codes (OTP) in Authentication > Providers.
 
 -- ---------- cloud saves ----------
@@ -39,7 +39,7 @@ create policy "anyone may add events" on public.telemetry_events for insert to a
 create index if not exists telemetry_events_kind_at on public.telemetry_events (kind, at desc);
 
 -- A ready-made view for pacing: when did players reach each stage?
-create or replace view public.pacing_by_stage as
+create or replace view public.pacing_by_stage with (security_invoker = true) as
   select (data->>'stage')::int as stage,
          count(distinct device) as players,
          percentile_cont(0.5) within group (order by (data->>'played')::double precision / 3600) as median_hours,
