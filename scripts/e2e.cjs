@@ -36,7 +36,6 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)|ERR_|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });
-  page.on('dialog', (d) => d.accept());
 
   console.log('Fresh start');
   await page.goto(url);
@@ -163,6 +162,8 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
   await step('delete save and start over', async () => {
     await nav('Settings');
     await page.click('button:has-text("Delete save and start over")');
+    await page.waitForSelector('.modal-f button:has-text("Delete everything")');
+    await page.click('.modal-f button:has-text("Delete everything")');
     await page.waitForTimeout(300);
     await nav('Overview');
     expect((await bodyText()).includes('Personal Growing Room'), 'new game did not return to stage 1');

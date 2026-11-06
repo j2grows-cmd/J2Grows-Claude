@@ -42,6 +42,31 @@ export const dismissOffline = (): void => {
   notify();
 };
 
+// In-app replacements for confirm() / prompt(): the browser's own dialogs are blocked in embedded viewers.
+export interface Ask {
+  title: string;
+  message?: string;
+  /** When set, the dialog shows a text field starting with this value. */
+  input?: string;
+  confirm: string;
+  danger?: boolean;
+  yes: (value: string) => void;
+}
+let ask: Ask | null = null;
+export const getAsk = (): Ask | null => ask;
+export function askConfirm(message: string, yes: () => void, opts: { title?: string; confirm?: string; danger?: boolean } = {}): void {
+  ask = { title: opts.title ?? 'Are you sure?', message, confirm: opts.confirm ?? 'Confirm', danger: opts.danger, yes: () => yes() };
+  notify();
+}
+export function askText(title: string, initial: string, yes: (value: string) => void, confirm = 'Save', message?: string): void {
+  ask = { title, message, input: initial, confirm, yes };
+  notify();
+}
+export function closeAsk(): void {
+  ask = null;
+  notify();
+}
+
 function notify(): void {
   version++;
   listeners.forEach((l) => l());

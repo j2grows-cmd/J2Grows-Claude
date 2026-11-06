@@ -1,8 +1,8 @@
 // Application shell: navigation, resource bar, toasts and the welcome-back report.
 
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { STAGES, discoveryCount, legacyGain, canPrestige, type GameState } from './engine';
-import { dismissOffline, getOffline, getToasts, setUi, useGame, useUi } from './store';
+import { closeAsk, dismissOffline, getAsk, getOffline, getToasts, setUi, useGame, useUi } from './store';
 import { Icon, Modal, Btn, Stat } from './ui/kit';
 import { dur, money, num } from './ui/format';
 import { PlantDetailHost } from './ui/PlantDetail';
@@ -142,6 +142,8 @@ export function App() {
         ))}
       </div>
 
+      <AskHost />
+
       {offline && (
         <Modal
           title="Welcome back"
@@ -166,5 +168,46 @@ export function App() {
         </Modal>
       )}
     </div>
+  );
+}
+
+function AskHost() {
+  const a = getAsk();
+  const [text, setText] = useState('');
+  useEffect(() => setText(a?.input ?? ''), [a]);
+  if (!a) return null;
+  const go = () => {
+    if (a.input !== undefined && !text.trim()) return;
+    closeAsk();
+    a.yes(text.trim());
+  };
+  return (
+    <Modal
+      title={a.title}
+      onClose={closeAsk}
+      footer={
+        <>
+          <Btn kind="ghost" onClick={closeAsk}>
+            Cancel
+          </Btn>
+          <Btn kind={a.danger ? 'danger' : 'primary'} onClick={go}>
+            {a.confirm}
+          </Btn>
+        </>
+      }
+    >
+      {a.message && <p className="muted">{a.message}</p>}
+      {a.input !== undefined && (
+        <input
+          id="ask-input"
+          type="text"
+          style={{ width: '100%' }}
+          autoFocus
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && go()}
+        />
+      )}
+    </Modal>
   );
 }

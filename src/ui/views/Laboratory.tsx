@@ -4,7 +4,7 @@ import {
   MAX_STAFF_LEVEL, ROLES, STAGES, advanceStage, currentStaffCap, deptStatus, fireStaff, hire, hireCost, maxRooms, roomSlotCap, stageRequirements, totalWages, trainCost,
   trainStaff, wageOf, buildRoom, nextRoomCost, type DeptId, type GameState, type StaffRole,
 } from '../../engine';
-import { act, setTab, setUi, useGame, useUi } from '../../store';
+import { act, askConfirm, setTab, setUi, useGame, useUi } from '../../store';
 import { Btn, Chip, Empty, Hint, Icon, PageHead, Panel, Req, Stat, Tabs } from '../kit';
 import { UpgradeList } from '../upgrades';
 import { money } from '../format';
@@ -184,7 +184,7 @@ function Staff({ s }: { s: GameState }) {
                   <Btn small disabled={m.level >= MAX_STAFF_LEVEL || s.money < trainCost(m.role, m.level)} onClick={() => act((g) => trainStaff(g, m.id))}>
                     Train · {m.level >= MAX_STAFF_LEVEL ? 'max' : money(trainCost(m.role, m.level))}
                   </Btn>
-                  <Btn small kind="ghost" onClick={() => confirm(`Let ${m.name} go?`) && act((g) => void fireStaff(g, m.id), true)}>
+                  <Btn small kind="ghost" onClick={() => askConfirm(`${m.name} will leave the team. You can hire a replacement at any time.`, () => act((g) => void fireStaff(g, m.id), true), { title: `Let ${m.name} go?`, confirm: 'Release', danger: true })}>
                     Release
                   </Btn>
                 </div>

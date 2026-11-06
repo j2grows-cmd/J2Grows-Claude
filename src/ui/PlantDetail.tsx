@@ -7,7 +7,7 @@ import {
   repot, sellPlant, setFlag, startAnalysis, startClone, startTissue, takeCutting, tcCost, tcMaxCycles, tcUnits, treatById, waterById, cloneCap, tcCap,
   analysisSlots, type CutKind, type GameState, type GeneId, type MediumId, type PotId, type Plant,
 } from '../engine';
-import { act, setUi, useGame, useUi } from '../store';
+import { act, askConfirm, askText, setUi, useGame, useUi } from '../store';
 import { Bar, Btn, Chip, Icon, Modal, Tabs } from './kit';
 import { GenomeView, PlantThumb, SuitView } from './plantbits';
 import { age, dur, money, pct, cap } from './format';
@@ -34,10 +34,10 @@ function PlantDetail({ s, p, onClose }: { s: GameState; p: Plant; onClose: () =>
       {!inStock && (
         <Btn
           onClick={() => {
-            if (confirm(`Discard ${p.name}? This cannot be undone.`)) {
+            askConfirm('The plant is removed for good. It earns nothing.', () => {
               act((g) => discardPlant(g, p.id));
               onClose();
-            }
+            }, { title: `Discard ${p.name}?`, confirm: 'Discard', danger: true });
           }}
           kind="ghost"
           icon="trash"
@@ -51,8 +51,7 @@ function PlantDetail({ s, p, onClose }: { s: GameState; p: Plant; onClose: () =>
           icon="star"
           title="Name this line and earn royalties each time it is sold"
           onClick={() => {
-            const name = prompt(`Name this cultivar (cost ${money(cultivarCost(s, p))}):`, `${sp.common[0]} '${p.name.split('#')[0].trim()}'`);
-            if (name) act((g) => registerCultivar(g, p.id, name));
+            askText('Name this cultivar', `${sp.common[0]} '${p.name.split('#')[0].trim()}'`, (name) => act((g) => registerCultivar(g, p.id, name)), `Register · ${money(cultivarCost(s, p))}`, 'Registering costs money and earns royalties every time the line is sold.');
           }}
         >
           Register cultivar · {money(cultivarCost(s, p))}

@@ -27,4 +27,14 @@ html = html.replace('<link rel="stylesheet" href="./src/styles.css" />', '<link 
 html = html.replace('<script type="module" src="./src/main.tsx"></script>', '<script defer src="./assets/main.js"></script>');
 await writeFile(`${out}/index.html`, html);
 await cp('public', out, { recursive: true }).catch(() => {});
+
+// A single self-contained file (CSS and JS inlined) that can be e-mailed, dropped on any host or opened by double-click.
+const css = await readFile(`${out}/assets/main.css`, 'utf8');
+const js = (await readFile(`${out}/assets/main.js`, 'utf8')).replace(/<\/script/gi, '<\\/script');
+const single = html
+  .replace('<link rel="stylesheet" href="./assets/main.css" />', () => `<style>\n${css}\n</style>`)
+  .replace('<script defer src="./assets/main.js"></script>', () => '')
+  .replace('<link rel="icon" type="image/svg+xml" href="./favicon.svg" />', () => '')
+  .replace('</body>', () => `<script>\n${js}\n</script>\n</body>`);
+await writeFile(`${out}/J2Grows.html`, single);
 console.log('Built', res.outputs.map((o) => `${o.path} (${(o.size / 1024).toFixed(0)} KB)`).join(', '));

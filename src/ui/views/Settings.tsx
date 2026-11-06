@@ -1,7 +1,7 @@
 // Settings, saves and about.
 
 import { useState } from 'react';
-import { act, exportText, importText, newRun, save, toast, useGame } from '../../store';
+import { act, askConfirm, exportText, importText, newRun, save, toast, useGame } from '../../store';
 import { Btn, Hint, PageHead, Panel, Stat } from '../kit';
 import { dur } from '../format';
 
@@ -38,7 +38,7 @@ export function Settings() {
               <div className="row wrap">
                 <Btn onClick={() => setExported(exportText())}>Export save</Btn>
                 {exported && (
-                  <Btn kind="ghost" onClick={() => { void navigator.clipboard?.writeText(exported); toast('Copied to the clipboard.', 'good'); }}>Copy</Btn>
+                  <Btn kind="ghost" onClick={() => { navigator.clipboard?.writeText(exported).then(() => toast('Copied to the clipboard.', 'good'), () => toast('Copy was blocked here: select the text above and copy it.', 'bad')); }}>Copy</Btn>
                 )}
               </div>
               {exported && <textarea readOnly value={exported} onFocus={(e) => e.currentTarget.select()} aria-label="Exported save" />}
@@ -62,7 +62,7 @@ export function Settings() {
           </Panel>
           <Panel title="Danger zone" icon="trash">
             <Hint>Start over from the very beginning. This deletes your save, legacy points included.</Hint>
-            <Btn kind="danger" icon="trash" onClick={() => confirm('Delete everything and start a brand-new game? This cannot be undone.') && newRun()}>
+            <Btn kind="danger" icon="trash" onClick={() => askConfirm('This deletes your save, your collection and your legacy points, and starts a brand-new game. It cannot be undone.', () => newRun(), { title: 'Start over?', confirm: 'Delete everything', danger: true })}>
               Delete save and start over
             </Btn>
           </Panel>

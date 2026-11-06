@@ -1,7 +1,7 @@
 // Legacy: the prestige system. Reset the operation for permanent bonuses and extra research.
 
 import { LEGACY, buyLegacy, canPrestige, discoveryCount, legacyCost, legacyGain, prestige } from '../../engine';
-import { act, setUi, useGame } from '../../store';
+import { act, askConfirm, setUi, useGame } from '../../store';
 import { Bar, Btn, Chip, Empty, Hint, Icon, PageHead, Panel, Stat } from '../kit';
 import { money, num } from '../format';
 
@@ -69,7 +69,7 @@ export function Legacy() {
                   </div>
                 </div>
                 <div className="mt">
-                  <Btn kind="gold" icon="legacy" onClick={() => confirm(`Reset your institution for +${gain} legacy points? This cannot be undone.`) && act((g) => prestige(g))}>
+                  <Btn kind="gold" icon="legacy" onClick={() => askConfirm('Your facility, plants, staff and most research reset. Discoveries, the collection, cultivars and legacy upgrades stay.', () => act((g) => prestige(g)), { title: `Reset for +${gain} legacy points?`, confirm: 'Hand on the legacy' })}>
                     Hand on the legacy
                   </Btn>
                 </div>
