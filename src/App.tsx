@@ -8,7 +8,7 @@ import { dur, money, num } from './ui/format';
 import { PlantDetailHost } from './ui/PlantDetail';
 import { Banner, BrandImage } from './ui/HeroArt';
 import { BRAND } from './ui/artwork';
-import { brandColourFrom, setFavicon } from './ui/brand';
+import { setFavicon } from './ui/brand';
 import { Overview } from './ui/views/Overview';
 import { Cultivation } from './ui/views/Cultivation';
 import { TissueCulture } from './ui/views/TissueCulture';
@@ -66,7 +66,7 @@ export function App() {
           <div className="brand-mark">
             <BrandImage
               file={BRAND.logo} width={84} className="brand-logo" alt="J2Grows"
-              onReady={(im) => { brandColourFrom(im, 1); setFavicon(im.currentSrc); }}
+              onReady={(im) => setFavicon(im.currentSrc)}
               fallback={<Icon name="plant" size={20} />}
             />
           </div>

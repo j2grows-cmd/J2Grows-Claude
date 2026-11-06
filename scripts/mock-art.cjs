@@ -1,10 +1,13 @@
 // Stand-in for the Supabase artwork buckets, so the game can be exercised without network access.
 //   const { installArtMock } = require('./mock-art.cjs');  await installArtMock(context, 'originals');
+// ART_DIR=<folder> serves real files from <folder>/<bucket>/<path> when present.
 // Modes:  'all'       resized (/render/image) and original (/object/public) requests succeed
 //         'originals' the image transformer is unavailable (404), originals succeed   <- the free-plan case
 //         'offline'   every request fails
 //         'missing'   every request is a 404 (bucket empty)
 const zlib = require('zlib');
+const fs = require('fs');
+const nodePath = require('path');
 
 function crc32(buf) {
   let c, crc = ~0;
@@ -48,6 +51,9 @@ async function installArtMock(context, mode = 'originals', stats = {}) {
     if (mode === 'offline') { stats.failed++; return route.abort('internetdisconnected'); }
     if (mode === 'missing' || (mode === 'originals' && isRender)) { stats.failed++; return route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '{"error":"not found"}' }); }
     const path = decodeURIComponent(url.split('/public/')[1].split('?')[0]);
+    // ART_DIR=<folder holding <bucket>/<file>> serves real pictures where they exist (e.g. the brand artwork)
+    const real = process.env.ART_DIR && nodePath.join(process.env.ART_DIR, path);
+    if (real && fs.existsSync(real)) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' }, body: fs.readFileSync(real) });
     const wide = /banner/.test(path);
     const body = wide ? png(480, 160, 130) : png(160, 160, hash(path) % 360);
     return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' }, body });

@@ -74,7 +74,7 @@ src/
     artwork.ts     Supabase storage URLs, fallbacks, the Artwork setting
     HeroArt.tsx    Plant pictures (tinted by genes and health) and the logo / banner components
     PlantArt.tsx   Chooses picture or drawing; the procedural SVG plants live here
-    brand.ts       Measures the accent colour from the logo and banner
+    brand.ts       Sets the browser tab icon from the logo
 scripts/         bot.ts + balance-sim.ts (pacing), gene-stats.ts, make-save.ts, smoke.ts,
                  build-bun.ts, shoot.cjs (screenshots), e2e.cjs (browser click-through)
 tests/           engine.test.ts
@@ -111,8 +111,8 @@ plan allows it, then as the original, and the procedural drawing is used if the 
 the game also works offline. Settings has a switch for drawn plants and a retry button. Plants are tinted by their
 colour gene and health, variegation and infection are overlaid, and young plants are drawn smaller.
 
-The accent colour (`--brand`: glows, highlights) is measured from the artwork at runtime and remembered; the rest of
-the palette lives in the CSS variables at the top of `src/styles.css`.
+Colour direction comes from the artwork: lime-olive (`--lime`, the logo's ring and "G"), cream (`--cream`, the "J2"), warm
+gold light and near-black jungle green. It all lives in the CSS variables at the top of `src/styles.css`.
 
 ## Tools
 
@@ -121,6 +121,7 @@ npx tsx scripts/balance-sim.ts 360 3        # pacing report: 360 game-minutes, s
 npx tsx scripts/make-save.ts 360 3 > s.json # a mid-game save to import in Settings or to screenshot
 node scripts/shoot.cjs shots all s.json     # screenshot every view from that save (needs a build)
 ART=offline node scripts/shoot.cjs shots all s.json   # same with the artwork servers unreachable (mocks in scripts/mock-art.cjs)
+ART_DIR=./art ART=originals node scripts/shoot.cjs shots all s.json   # serve real files from ./art/<bucket>/<path> instead of stand-ins
 ```
 
 ## Status

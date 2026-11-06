@@ -9,7 +9,6 @@ import { Bar, Btn, Chip, Empty, Icon, PageHead, Panel, Req, Stat } from '../kit'
 import { PlantArt } from '../PlantArt';
 import { Banner, BrandImage } from '../HeroArt';
 import { BRAND } from '../artwork';
-import { brandColourFrom } from '../brand';
 import { SPECIES, SPECIES_LIST } from '../../engine';
 import { dur, money, num } from '../format';
 
@@ -56,11 +55,11 @@ export function Overview() {
 
   return (
     <div className="page">
-      <Banner file={BRAND.bannerLogo} className="banner-top" onReady={(im) => brandColourFrom(im, 2)} />
+      <Banner file={BRAND.bannerLogo} className="banner-top" />
       <PageHead title="Overview" blurb="Grow. Discover. Experiment. Evolve." right={<Chip tone="muted">Day {Math.floor(s.totalTime / 60) + 1}</Chip>} />
 
       <div className="hero" style={{ marginBottom: 16 }}>
-        <BrandImage file={BRAND.banner} width={1200} className="hero-bg" onReady={(im) => brandColourFrom(im, 2)} />
+        <BrandImage file={BRAND.banner} width={1200} className="hero-bg" />
         <div>
           <div className="row gap-s" style={{ marginBottom: 6 }}>
             <Chip tone="green">Stage {s.stage} of {STAGES.length}</Chip>

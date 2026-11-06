@@ -8,20 +8,23 @@
   --panel-2: rgba(24, 44, 33, 0.72);
   --line: rgba(172, 205, 140, 0.13);
   --line-2: rgba(172, 205, 140, 0.24);
-  --text: #e7efe1;
+  --text: #ece9d9;
   --muted: #8da596;
   --faint: #5f7769;
-  --olive: #a9bd5a;
-  --olive-2: #c3d27e;
+  --olive: #a3c23c;
+  --olive-2: #c6de68;
+  --lime: #9cc43a;
+  --lime-2: #c4dd5e;
+  --cream: #f1ecd6;
   --green: #3fa56b;
   --green-2: #5fd08e;
   --glass: #6cc7d3;
   --gold: #dfb85c;
   --red: #e2776b;
   --purple: #a891e8;
-  --brand: #8fd18a;
-  --brand-2: #3f9a5a;
-  --brand-glow: rgba(80, 180, 110, 0.35);
+  --brand: #9cc43a;
+  --brand-2: #5d7d1c;
+  --brand-glow: rgba(156, 196, 58, 0.3);
   --radius: 14px;
   --shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
   --serif: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
@@ -39,7 +42,7 @@ body,
 }
 body {
   margin: 0;
-  background: radial-gradient(1200px 700px at 78% -10%, color-mix(in srgb, var(--brand-2) 30%, transparent), transparent 60%), radial-gradient(900px 600px at -10% 110%, rgba(150, 175, 70, 0.1), transparent 60%), var(--bg);
+  background: radial-gradient(1200px 700px at 78% -10%, rgba(120, 150, 40, 0.2), transparent 60%), radial-gradient(700px 420px at 6% -8%, rgba(223, 170, 70, 0.1), transparent 70%), radial-gradient(900px 600px at -10% 110%, rgba(150, 175, 70, 0.1), transparent 60%), var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 14px;
@@ -78,7 +81,7 @@ button {
   color: inherit;
 }
 ::selection {
-  background: rgba(95, 208, 142, 0.3);
+  background: rgba(156, 196, 58, 0.32);
 }
 .num,
 .mono {
@@ -192,11 +195,11 @@ button {
 }
 .nav.on {
   color: var(--text);
-  background: linear-gradient(90deg, rgba(95, 208, 142, 0.16), rgba(95, 208, 142, 0.04));
+  background: linear-gradient(90deg, rgba(156, 196, 58, 0.2), rgba(156, 196, 58, 0.04));
   border-color: var(--line-2);
 }
 .nav.on .icon {
-  color: var(--green-2);
+  color: var(--lime-2);
 }
 .nav.locked {
   opacity: 0.45;
@@ -441,16 +444,16 @@ button {
 .icon-btn:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--green-2);
+  outline: 2px solid var(--lime-2);
   outline-offset: 2px;
 }
 .btn-primary {
-  background: linear-gradient(180deg, #3a9a63, #2b7a4c);
-  border-color: rgba(140, 230, 170, 0.5);
-  color: #f3fff5;
+  background: linear-gradient(180deg, #7ea127, #587616);
+  border-color: rgba(196, 221, 94, 0.55);
+  color: #fbffe8;
 }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #46ad71, #338a57);
+  background: linear-gradient(180deg, #8db52e, #658a1a);
 }
 .btn-gold {
   background: linear-gradient(180deg, #b99238, #8f6f22);
@@ -603,7 +606,7 @@ input[type='checkbox'] {
   color: var(--text);
 }
 .tab.on {
-  background: rgba(95, 208, 142, 0.16);
+  background: rgba(156, 196, 58, 0.18);
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--line-2);
 }
@@ -1530,13 +1533,17 @@ table.t tr:last-child td {
   position: absolute;
   left: 6%;
   bottom: 6%;
-  width: 20%;
-  max-width: 24px;
-  aspect-ratio: 1;
+  width: min(22%, 24px);
+  height: min(22%, 24px);
   padding: 3px;
   border-radius: 999px;
   background: rgba(7, 16, 12, 0.78);
   color: var(--glass);
+}
+.pic-pot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .pic-parent {
   position: absolute;
@@ -1562,8 +1569,9 @@ table.t tr:last-child td {
   overflow: hidden;
   border-radius: 18px;
   border: 1px solid var(--line-2);
+  background: #0a130d;
   box-shadow: 0 10px 40px -14px var(--brand-glow);
-  max-height: clamp(130px, 30vw, 300px);
+  max-height: 340px;
   opacity: 0;
   transition: opacity 0.5s ease;
 }
@@ -1575,7 +1583,8 @@ table.t tr:last-child td {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: 50% 50%;
   display: block;
 }
 .banner-top {

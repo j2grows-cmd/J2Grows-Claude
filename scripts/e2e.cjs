@@ -57,8 +57,6 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
     await page.waitForSelector('.banner-top.on img', { timeout: 4000 });
     expect(await page.evaluate(() => (document.querySelector('.brand-logo')).naturalWidth > 0), 'logo did not decode');
     expect((await page.getAttribute('link[rel~="icon"]', 'href')).includes('supabase.co'), 'favicon was not switched to the logo');
-    const brand = await page.evaluate(() => document.documentElement.style.getPropertyValue('--brand'));
-    expect(/^hsl\(/.test(brand), 'accent colour was not measured from the artwork: "' + brand + '"');
     for (const f of ['Artwork/logo.png', 'Artwork/banner.png', 'Artwork/banner with logo.png']) expect(artStats.urls.has(f), f + ' was never requested');
   });
   await step('image transformer failure falls back to originals, and is remembered', async () => {

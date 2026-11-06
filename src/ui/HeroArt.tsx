@@ -209,27 +209,23 @@ export function BrandImage({ file, width, className, style, alt = '', fallback =
 }
 
 /**
- * A wide brand picture shown at its natural proportions (never cropped), on a backdrop matched to its edges.
- * Renders nothing if the picture cannot be loaded.
+ * A wide brand picture shown at its natural proportions, cropped from the top and bottom only when the page is
+ * wide enough to hit the height cap. Renders nothing if the picture cannot be loaded.
  */
-export function Banner({ file, width = 1600, className = '', onReady, children }: {
-  file: string; width?: number; className?: string; onReady?: (img: HTMLImageElement) => void; children?: ReactNode;
-}) {
-  const [edge, setEdge] = useState<string | null>(null);
-  const [ratio, setRatio] = useState(3);
+export function Banner({ file, width = 1600, className = '', children }: { file: string; width?: number; className?: string; children?: ReactNode }) {
+  const [ratio, setRatio] = useState(2.67);
   const [loaded, setLoaded] = useState(false);
-  const loader = useLoader(BRAND_BUCKET, file, width, () => undefined, (c) => setEdge(c));
+  const loader = useLoader(BRAND_BUCKET, file, width, () => undefined);
   if (loader.failed) return null;
   return (
-    <div className={`banner ${loaded ? 'on' : ''} ${className}`} style={{ aspectRatio: String(ratio), background: edge ?? undefined }}>
+    <div className={`banner ${loaded ? 'on' : ''} ${className}`} style={{ aspectRatio: String(ratio) }}>
       <img
-        src={loader.src} crossOrigin={loader.crossOrigin} alt="J2Grows. Grow. Discover. Experiment. Evolve." loading="eager" decoding="async" draggable={false}
+        src={loader.src} crossOrigin={loader.crossOrigin} alt="J2G Grows" loading="eager" decoding="async" draggable={false}
         onLoad={(e) => {
           const im = e.currentTarget;
           if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight);
           loader.onLoad(e);
           setLoaded(true);
-          if (loader.readable) onReady?.(im);
         }}
         onError={loader.onError}
       />
