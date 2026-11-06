@@ -84,8 +84,11 @@ export interface Row {
   traits?: Species['traits'];
 }
 
-/** Price multipliers per rarity, set from the pacing simulator (npm run balance) so stage times stay on target. */
-export const PACING: Record<number, number> = { 1: 1, 2: 1.05, 3: 1.15, 4: 1.2, 5: 1 };
+/**
+ * Price multipliers per rarity, set from the pacing simulator (npm run balance) so the first legacy reset lands at 80-100 hours.
+ * Rarer plants are worth proportionally less than their raw rows suggest: late income is capped by plant prices, not by slots.
+ */
+export const PACING: Record<number, number> = { 1: 0.9, 2: 0.52, 3: 0.48, 4: 0.46, 5: 0.34 };
 
 const t = (mean: number, sd = 0.13) => ({ mean, sd });
 

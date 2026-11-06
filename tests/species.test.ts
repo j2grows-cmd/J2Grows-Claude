@@ -31,7 +31,12 @@ test('rarity, price and unlock stage rise together', () => {
   const byStage = (n: number) => SPECIES_LIST.filter((s) => s.unlock.stage === n);
   assert.ok(byStage(1).length >= 6, 'stage 1 needs a handful of starters');
   assert.ok(byStage(1).every((s) => s.rarity === 1 && s.baseValue <= 60));
-  assert.ok(SPECIES_LIST.filter((s) => s.rarity === 5).every((s) => s.baseValue >= 2000));
+  const mean = (r: number) => {
+    const l = SPECIES_LIST.filter((s) => s.rarity === r);
+    return l.reduce((a, s) => a + s.baseValue, 0) / l.length;
+  };
+  for (let r = 2; r <= 5; r++) assert.ok(mean(r) > mean(r - 1) * 1.4, `rarity ${r} is worth clearly more than rarity ${r - 1} on average`);
+  assert.ok(SPECIES_LIST.filter((s) => s.rarity === 5).every((s) => s.baseValue >= mean(4)), 'every legendary beats the average rarity 4 plant');
   assert.ok(SPECIES_LIST.filter((s) => s.rarity <= 2).every((s) => s.baseValue < 250));
 });
 

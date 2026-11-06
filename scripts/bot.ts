@@ -5,16 +5,17 @@ import {
   EQUIP, STAGES, equipCost, roomSlotCost, SPECIES_LIST, discoveryCount, TECHS, UPGRADES, advanceStage, autoTuneRoom, availableSpecies, buildRoom, buy, buyEquip, buyUpgrade,
   canCut, careRoom, expandRoom, firstFreeSlot, hire, matchesContract, nextRoomCost, placePropagule, plantValue, propCap,
   roomSlotCap, sellPlant, setFlag, startAnalysis, startBreeding, startClone, startProject, startTissue, takeCutting,
-  fulfillContract, techState, feedPlant, treatPlant, waterPlant, tcMaxCycles, upgradeStatus, bestMedium, effectiveSpecies, registerCultivar,
+  fulfillContract, canPrestige, techState, feedPlant, treatPlant, waterPlant, tcMaxCycles, upgradeStatus, bestMedium, effectiveSpecies, registerCultivar,
   type CutKind, type GameState, type Plant,
 } from '../src/engine';
 
 const TECH_ORDER = [
   'com_market', 'env_reservoir', 'prop_cuttings', 'auto_water', 'prop_rooting', 'prop_leaf', 'prop_seeds', 'prop_tc', 'prop_cloning',
-  'env_nutrients', 'env_monitor', 'env_climate', 'env_airflow', 'gen_mendel', 'gen_geno', 'com_collectors', 'com_registry', 'auto_feed',
-  'auto_treat', 'auto_env', 'mut_sports', 'prop_media', 'gen_hybrid', 'prop_sterile', 'mut_soma', 'env_hydro', 'com_liners',
-  'gen_db', 'gen_seq', 'auto_plant', 'auto_analyse', 'auto_propagate', 'prop_bioreactor', 'mut_induced', 'com_brand',
-  'auto_harvest', 'auto_sales', 'auto_tissue', 'com_seeds', 'mut_novel', 'env_spectrum', 'env_predict',
+  'env_nutrients', 'env_monitor', 'env_climate', 'env_airflow', 'gen_mendel', 'exp_neotropics', 'exp_sea', 'gen_geno', 'com_collectors',
+  'com_registry', 'auto_feed', 'auto_treat', 'auto_env', 'mut_sports', 'prop_media', 'gen_hybrid', 'prop_sterile', 'mut_soma', 'env_hydro',
+  'com_liners', 'gen_db', 'gen_seq', 'auto_plant', 'auto_analyse', 'auto_propagate', 'prop_bioreactor', 'mut_induced', 'com_brand',
+  'exp_andes', 'exp_atlantic', 'auto_harvest', 'auto_sales', 'auto_tissue', 'com_seeds', 'auto_gantry', 'com_export', 'com_licensing',
+  'mut_novel', 'env_spectrum', 'env_predict',
 ];
 const UP_ORDER = [
   'res_bench', 'lvl_cultivation', 'res_library', 'res_slots', 'cult_storage', 'lvl_tissue', 'lvl_genetics', 'gen_bench', 'gen_breeding',
@@ -24,6 +25,8 @@ const UP_ORDER = [
 
 export interface BotLog {
   stageAt: Record<number, number>;
+  /** Game time at which the first legacy reset became possible. */
+  prestigeAt?: number;
   techAt: Record<string, number>;
   snaps: { t: number; stage: number; money: number; rp: number; plants: number; disc: number; techs: number; income: number }[];
 }
@@ -39,16 +42,20 @@ const LEVEL_CAP: Record<string, number> = { lvl_cultivation: 6, lvl_tissue: 4, l
 const levelOf = (s: GameState, id: string): number => s.upgrades[id] ?? 0;
 
 function chase(s: GameState, blog: BotLog, saving: boolean): void {
-  if (saving) return;
   type Goal = { kind: 'tech' | 'up'; id: string; cost: number; rank: number };
-  const techs: Goal[] = TECHS.filter((t) => techState(s, t).status === 'available' && s.rp >= t.rp)
+  const next = STAGES[s.stage];
+  const cheap = saving && next ? next.cost * 0.12 : Infinity; // while saving for a stage only small purchases are made
+  const techs: Goal[] = TECHS.filter((t) => techState(s, t).status === 'available' && s.rp >= t.rp && t.money <= cheap)
     .map((t) => ({ kind: 'tech' as const, id: t.id, cost: t.money, rank: TECH_ORDER.indexOf(t.id) < 0 ? 999 : TECH_ORDER.indexOf(t.id) }))
     .sort((a, b) => a.rank - b.rank || a.cost - b.cost);
-  const ups: Goal[] = UPGRADES.filter((u) => upgradeStatus(s, u.id).ok && levelOf(s, u.id) < (LEVEL_CAP[u.id] ?? 2))
+  // With no further stage to save for, a finishing player buys every upgrade level.
+  const finishing = !STAGES[s.stage];
+  const ups: Goal[] = saving ? [] : UPGRADES.filter((u) => upgradeStatus(s, u.id).ok && levelOf(s, u.id) < (finishing ? 99 : LEVEL_CAP[u.id] ?? 2))
     .map((u) => ({ kind: 'up' as const, id: u.id, cost: upgradeStatus(s, u.id).cost, rank: UP_ORDER.indexOf(u.id) < 0 ? 999 : UP_ORDER.indexOf(u.id) }))
     .sort((a, b) => a.rank - b.rank || a.cost - b.cost);
   const free = s.active.length < s.mods.researchSlots;
-  const cands = [...(free ? techs.slice(0, 2) : []), ...ups.slice(0, 2)].sort((a, b) => a.cost - b.cost);
+  // Once the last stage is reached the research tree is the goal: finish it before spending on upgrades.
+  const cands = finishing && free && techs.length ? techs.slice(0, 2).sort((a, b) => a.cost - b.cost) : [...(free ? techs.slice(0, 2) : []), ...ups.slice(0, 2)].sort((a, b) => a.cost - b.cost);
   const goal = cands[0];
   if (!goal || s.money < goal.cost * 1.02 + 40) return;
   if (goal.kind === 'tech') { if (startProject(s, goal.id).ok) blog.techAt[goal.id] = s.time; }
@@ -175,6 +182,7 @@ export function botAct(s: GameState, blog: BotLog): void {
   // --- stage ---
   const adv = advanceStage(s);
   if (adv.ok) blog.stageAt[s.stage] = s.time;
+  if (blog.prestigeAt === undefined && canPrestige(s).ok) blog.prestigeAt = s.time;
 
   // --- staff ---
   if (s.stage >= 3 && s.money > 5000) {

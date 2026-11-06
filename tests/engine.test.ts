@@ -5,6 +5,7 @@ import {
   buy, placePropagule, waterPlant, feedPlant, sellPlant, plantValue, serialize, deserialize, simulateOffline, offlineLimits,
   startProject, TECH_BY_ID, canPrestige, prestige, legacyGain, startBreeding, setFlag, firstFreeSlot, bestMedium, effectiveSpecies,
   discoveryCount, DISCOVERIES, qualifying, makePlant, makePropagule, STAGES, roomSlotCost, rescue,
+  PRESTIGE_STAGE, PRESTIGE_MIN_EARNED, PRESTIGE_DIVISOR, TECHS, buyLegacy, techState, stageRequirements,
   type GameState, type Genome, type Plant,
 } from '../src/engine';
 import { botAct, makeBotLog } from '../scripts/bot';
@@ -366,13 +367,28 @@ test('offline time grows plants, so a returning player finds mature plants waiti
   assert.ok(s.plants.length === 0 || s.plants[0].growth > 0.5 || s.stats.matured > 0 || s.stats.died > 0);
 });
 
-test('prestige is locked early, pays out later, and keeps permanent progress', () => {
+/** Put a save into the state in which the first legacy reset is allowed. */
+function readyToPrestige(s: GameState): void {
+  s.stage = PRESTIGE_STAGE;
+  for (const t of TECHS) if (t.cat !== 'synthetic') s.done[t.id] = 1;
+  s.stats.earnedRun = PRESTIGE_MIN_EARNED * 2;
+  s.stats.earned = s.stats.earnedRun;
+  refreshMods(s);
+}
+
+test('prestige is locked until the end of the main game, pays out then, and keeps permanent progress', () => {
   const s = fresh(70);
   assert.equal(canPrestige(s).ok, false);
   assert.equal(prestige(s).ok, false);
+  // Stage 4 and plenty of money used to be enough; now the last stage and the whole research tree are needed.
   s.stage = 4;
-  s.stats.earnedRun = 400000;
-  s.stats.earned = 400000;
+  s.stats.earnedRun = PRESTIGE_MIN_EARNED * 2;
+  assert.equal(canPrestige(s).ok, false);
+  assert.match(canPrestige(s).why ?? '', /Stage 6/);
+  s.stage = PRESTIGE_STAGE;
+  assert.equal(canPrestige(s).ok, false);
+  assert.match(canPrestige(s).why ?? '', /research tree/);
+  readyToPrestige(s);
   s.discoveries['leafSize_hi1|philodendron-brasil'] = { t: 1, plant: 1, plantName: 'x' };
   s.money = 12345;
   plantOne(s);
@@ -387,6 +403,45 @@ test('prestige is locked early, pays out later, and keeps permanent progress', (
   assert.ok(s.money < 12345);
   assert.equal(s.stats.earnedRun, 0);
   assert.ok(discoveryCount(s) >= 1, 'discoveries survive a legacy reset');
+});
+
+test('one missing technology from the main tree keeps the first reset closed', () => {
+  const s = fresh(71);
+  readyToPrestige(s);
+  assert.equal(canPrestige(s).ok, true);
+  const last = TECHS.filter((t) => t.cat !== 'synthetic')[10];
+  delete s.done[last.id];
+  assert.equal(canPrestige(s).ok, false);
+  assert.match(canPrestige(s).why ?? '', /1 technology still/);
+});
+
+test('discoveries pay out legacy points once, not at every reset', () => {
+  const s = fresh(72);
+  readyToPrestige(s);
+  for (let i = 0; i < 80; i++) s.discoveries[`leafSize_hi1|fake-${i}`] = { t: 1, plant: 1, plantName: 'x' };
+  const base = Math.floor(Math.sqrt(s.stats.earnedRun / PRESTIGE_DIVISOR));
+  assert.equal(legacyGain(s), base + 10, '80 discoveries are worth 10 points the first time');
+  assert.ok(prestige(s).ok);
+  readyToPrestige(s);
+  assert.equal(legacyGain(s), base, 'the same discoveries are not paid again');
+  for (let i = 0; i < 16; i++) s.discoveries[`leafSize_hi1|more-${i}`] = { t: 2, plant: 1, plantName: 'x' };
+  assert.equal(legacyGain(s), base + 2, 'new discoveries count');
+});
+
+test('technologies kept by the legacy perks still read as researched after a reset', () => {
+  const s = fresh(73);
+  readyToPrestige(s);
+  s.legacy.points = 50;
+  assert.ok(buyLegacy(s, 'memory').ok);
+  assert.ok(buyLegacy(s, 'auto').ok);
+  assert.ok(prestige(s).ok);
+  const kept = Object.keys(s.done);
+  assert.ok(kept.length > 5, 'stage 1-2 and automation techs survive');
+  for (const id of kept) {
+    assert.equal(techState(s, TECH_BY_ID[id]).status, 'done', `${id} should count as researched`);
+    assert.ok(s.done[id], `${id} must be truthy so every gate sees it`);
+  }
+  assert.equal(stageRequirements(s)!.some((r) => /Cutting/.test(r.label) && !r.met), false, 'a kept prerequisite does not block a stage');
 });
 
 test('flagging a plant as a mother or keeper is remembered', () => {

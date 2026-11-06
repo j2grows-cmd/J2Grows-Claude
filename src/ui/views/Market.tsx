@@ -329,7 +329,7 @@ function Cultivars({ s }: { s: GameState }) {
     <div className="grid g-main">
       <Panel title="Registered cultivars" icon="star" sub={`${s.cultivars.length}`}>
         {s.cultivars.length === 0 ? (
-          <Empty icon="star">Open a mature, analysed plant that carries at least one discovery and choose “Register cultivar”. Each registered line earns royalties as long as you keep it.</Empty>
+          <Empty icon="star">Open a mature, analysed plant that carries at least one discovery and choose “Register cultivar”. Each registered line earns royalties as long as you keep it. A species can hold up to three lines, and each trait line can be registered once.</Empty>
         ) : (
           <div className="list">
             {s.cultivars.map((c) => (

@@ -38,11 +38,20 @@ export function plantValue(s: GameState, p: Plant): number {
   return Math.max(0, v);
 }
 
+/** What the shop charges per unit, as a share of the species' base value. */
+const SHOP_UNIT: Partial<Record<PropKind, number>> = {
+  seed: PRICE_SEED / SEED_PACK, young: PRICE_YOUNG, stem: PRICE_CUTTING, division: PRICE_CUTTING, leaf: PRICE_CUTTING, tissue: PRICE_FLASK / TC_FLASK,
+};
+/** Something bought from the shop never sells back for more than this share of what it cost. */
+export const RESALE_LIMIT = 0.6;
+
 export function propValue(s: GameState, pr: Propagule): number {
   const sp = effectiveSpecies(pr.sp, pr.hy);
   const f: Record<PropKind, number> = { seed: 0.1, tissue: 0.09, stem: 0.15, leaf: 0.1, division: 0.3, clone: 0.35, young: 0.5 };
   let v = sp.baseValue * f[pr.kind] * (pr.kind === 'seed' ? s.mods.seedPrice * pr.q : 1) * s.mods.sellPrice * marketIdx(s, sp.id);
   if (pr.cultivar) v *= 1.4;
+  // Late-game price bonuses must not turn "buy it, sell it straight back" into free money.
+  if (pr.origin === 'purchase') v = Math.min(v, sp.baseValue * (SHOP_UNIT[pr.kind] ?? 0) * RESALE_LIMIT);
   return v;
 }
 
@@ -268,6 +277,14 @@ export function cultivarCost(s: GameState, p: Plant): number {
   return Math.round(plantValue(s, p) * 0.6 + 150 * sp.rarity);
 }
 
+/** A species can carry only a few registered lines, and each trait line can be registered once. */
+export const CULTIVARS_PER_SPECIES = 3;
+/** Royalty per second as a share of (base value x trait bonus): about a quarter of a plant's worth per hour. */
+export const ROYALTY_SHARE = 0.25 / 3600;
+
+const topTag = (tags: string[]): string => [...tags].sort((a, b) => (DISC_BY_ID[b]?.value ?? 0) - (DISC_BY_ID[a]?.value ?? 0) || a.localeCompare(b))[0] ?? '';
+export const cultivarLine = (c: { sp: string; hy?: string; tags: string[] }): string => `${c.sp}|${c.hy ?? ''}|${topTag(c.tags)}`;
+
 export function registerCultivar(s: GameState, plantId: number, name: string): Result {
   const p = getPlant(s, plantId);
   if (!p) return fail('Plant not found.');
@@ -277,11 +294,14 @@ export function registerCultivar(s: GameState, plantId: number, name: string): R
   if (!p.tags.length) return fail('A cultivar needs at least one discovery.');
   if (p.analysis < 1) return fail('Analyse the plant first so it can be documented.');
   const sp = effectiveSpecies(p.sp, p.hy);
+  const line = cultivarLine(p);
+  if (s.cultivars.some((c) => cultivarLine(c) === line)) return fail('This trait line is already registered for the species.');
+  if (s.cultivars.filter((c) => c.sp === p.sp && c.hy === p.hy).length >= CULTIVARS_PER_SPECIES) return fail(`${sp.common[0]} already has ${CULTIVARS_PER_SPECIES} registered cultivars.`);
   const cost = cultivarCost(s, p);
   if (!spend(s, cost)) return fail(`Registration costs $${cost.toLocaleString()}.`);
   const id = `cv_${uid(s)}`;
   const clean = name.trim() || `${DISC_BY_ID[p.tags[0]]?.name ?? 'Select'} ${sp.common[0]}`;
-  const royalty = ((sp.baseValue * (1 + tagBonus(p)) * 0.12) / 60) * 1;
+  const royalty = sp.baseValue * (1 + tagBonus(p)) * ROYALTY_SHARE;
   s.cultivars.push({ id, name: clean, sp: p.sp, hy: p.hy, tags: [...p.tags], t: s.time, royalty, rarity: sp.rarity });
   p.cultivar = id;
   p.name = clean;

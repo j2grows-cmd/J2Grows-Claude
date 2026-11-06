@@ -36,11 +36,11 @@ Everything is client side. The game saves to the browser's local storage every 1
 | **Tissue Culture** | A sterile pipeline (initiation, multiplication, rooting, acclimatisation) that turns one mother plant into dozens of plantlets, at some risk. |
 | **Research** | A 70-technology tree in eight branches (genetics, cultivation, propagation, mutation, automation, commercial production, species discovery, plus a late-game Synthetic Botany branch). Projects cost research points, money and time and several can run in parallel. |
 | **Laboratory** | Six facility stages, from a *Personal Growing Room* to an *Advanced Research Institution*. Four independently upgradeable departments (Cultivation, Tissue Culture, Genetics, Research) plus facility upgrades, and staff (growers, lab technicians, geneticists, researchers, sales managers) with wages and training. |
-| **Market** | Buy stock, sell plants, take collector contracts, watch per-species prices move with demand and events, register named cultivars that earn royalties. |
+| **Market** | Buy stock, sell plants, take collector contracts, watch per-species prices move with demand and events, register named cultivars that earn royalties (up to three per species, one per trait line, a small trickle each). Stock bought from the shop resells for at most 60% of what it cost, so buying to flip does not pay. |
 | **Collection** | A real-species database with discovery progress, a codex of 68 discoveries (novel alleles, rare traits, record specimens…), a hall of fame of the finest plants you have bred, and every plant's individual history. |
 | **Automation** | Watering, feeding, treatment, climate control, analysis, planting, propagation, harvesting and selling, each unlocked by research and driven by a shared action budget plus your staff. Auto-sell has rules (minimum value, keep analysed plants, hold when demand is low). |
 | **Idle play** | Closing the tab does not stop the lab. On return you get a *Welcome back* report: up to 4 hours (extendable) are simulated at 50% efficiency (also improvable). Outbreaks do not begin while you are away unless conditions are genuinely poor, and plants are never lost offline. |
-| **Legacy (prestige)** | From Stage 4 you can hand on the legacy: reset the facility for Legacy Points spent on permanent upgrades (research output, discovery rewards, growth speed, offline time, prices, mutation, tissue culture…). Discoveries, the collection, cultivars and statistics are kept. |
+| **Legacy (prestige)** | The first reset is the end of the main game: reach Stage 6, finish the whole core research tree and earn $50M in the run. You then hand on the legacy: reset the facility for Legacy Points spent on permanent upgrades (research output, discovery rewards, growth speed, offline time, prices, mutation, tissue culture…). Discoveries, the collection, cultivars and statistics are kept, and only discoveries you have not already been paid for add to the next reset's points. |
 
 ### A good first ten minutes
 
@@ -77,7 +77,7 @@ src/
     brand.ts       Sets the browser tab icon from the logo
 scripts/         bot.ts + balance-sim.ts (pacing), gene-stats.ts, make-save.ts, smoke.ts,
                  build-bun.ts, shoot.cjs (screenshots), e2e.cjs (browser click-through)
-tests/           engine.test.ts
+tests/           engine.test.ts, species.test.ts, economy.test.ts
 ```
 
 Design notes:
@@ -90,9 +90,12 @@ Design notes:
 * **Discoveries are credited per (discovery, species)** so there is always something new in a species you
   have not yet explored, and analysis levels (0 visual → 3 full genome) gate what you can *see*, never what
   the plant *is*.
-* **Balance is measured, not guessed.** `npm run balance` plays a goal-driven bot through the game. Current
-  pacing (six bot seeds): Stage 2 in roughly 15–23 min, Stage 3 in about 1.4–1.7 h, Stage 4 in about 4.5–5.3 h,
-  Stage 5 in about 11–14 h. Stage 6 and prestige are intended as multi-day goals.
+* **Balance is measured, not guessed.** `npm run balance` plays a goal-driven bot through the game, checking in
+  every few seconds like an attentive player. The target is **80-100 hours of play before the first Legacy
+  reset**. Measured with that bot (three seeds): Stage 2 after ~0.4 h, Stage 3 ~2-3 h, Stage 4 ~11-12 h,
+  Stage 5 ~26-29 h, Stage 6 ~52-57 h, the whole core research tree ~78-86 h, which is when the reset opens
+  (with around 150 Legacy Points on the first reset). A player who checks in only every half minute or so
+  lands near 100 h. Offline time counts at 50% efficiency, so leaving the game running is slower than playing.
 
 ## Artwork
 

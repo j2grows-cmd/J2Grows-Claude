@@ -59,7 +59,7 @@ export const TECHS: TechDef[] = [
   t('env_substrate', 'cultivation', 'Engineered Substrates', 3, 220, 5500, 170, ['env_hydro'], 'Improved germination and moisture retention.', [add('germination', 0.1), mul('waterUse', 0.9)]),
   t('env_predict', 'cultivation', 'Predictive Microclimate AI', 4, 650, 32000, 300, ['env_spectrum'], 'Anticipates drift and corrects before plants notice.', [add('stability', 0.2), mul('growth', 1.08)]),
   t('env_vertical', 'cultivation', 'Vertical Rack Systems', 5, 2600, 300000, 600, ['env_predict'], 'Every grow room gains four extra slots.', [add('roomSlots', 4)]),
-  t('env_closed', 'cultivation', 'Closed-Loop Biospheres', 6, 9000, 2500000, 900, ['env_vertical'], 'Recycled water and heat: faster growth, a fraction of the running costs.', [mul('growth', 1.2), mul('energy', 0.6), mul('waterUse', 0.6)]),
+  t('env_closed', 'cultivation', 'Closed-Loop Biospheres', 6, 9000, 4600000, 900, ['env_vertical'], 'Recycled water and heat: faster growth, a fraction of the running costs.', [mul('growth', 1.2), mul('energy', 0.6), mul('waterUse', 0.6)]),
   // ---- Propagation & Tissue Culture ---------------------------------------------------------
   t('prop_cuttings', 'propagation', 'Cutting Technique', 2, 18, 220, 40, [], 'Unlocks stem cuttings from mature plants.', [flag('stemCuttings'), add('propSuccess', 0.05)]),
   t('prop_leaf', 'propagation', 'Leaf & Division Techniques', 2, 30, 350, 60, ['prop_cuttings'], 'Unlocks leaf cuttings and clump division.', [flag('leafCuttings')]),
@@ -80,7 +80,7 @@ export const TECHS: TechDef[] = [
   t('mut_novel', 'mutation', 'Novel Allele Surveys', 4, 1200, 90000, 360, ['mut_induced'], 'Mutations are twice as likely to produce brand-new alleles.', [mul('novel', 2)]),
   t('mut_directed', 'mutation', 'Directed Evolution', 5, 3200, 420000, 600, ['mut_novel'], 'Selection pressure at scale: more mutation and better discovery yields.', [mul('mutation', 1.4), mul('discovery', 1.25)]),
   t('mut_unstable', 'mutation', 'Controlled Instability', 5, 4200, 600000, 700, ['mut_directed'], 'Deliberately destabilised lines produce striking novelties.', [mul('novel', 1.8), mul('tcMutation', 1.6)]),
-  t('mut_evolve', 'mutation', 'Accelerated Evolution', 6, 12000, 4000000, 1000, ['mut_unstable'], 'Evolution on a leash.', [mul('mutation', 1.6), mul('discovery', 1.4)]),
+  t('mut_evolve', 'mutation', 'Accelerated Evolution', 6, 12000, 7400000, 1000, ['mut_unstable'], 'Evolution on a leash.', [mul('mutation', 1.6), mul('discovery', 1.4)]),
   // ---- Genetics & Heredity --------------------------------------------------------------------
   t('gen_mendel', 'genetics', 'Mendelian Principles', 3, 180, 3000, 120, [], 'Faster analysis and a preview of how parents combine.', [mul('analysisSpeed', 1.2), flag('breedPreview')]),
   t('gen_geno', 'genetics', 'Marker Genotyping', 3, 340, 8500, 180, ['gen_mendel'], 'Unlocks level-2 genotype scans: see both alleles of every gene.', [flag('analysis2')]),
@@ -89,8 +89,8 @@ export const TECHS: TechDef[] = [
   t('gen_predict', 'genetics', 'Inheritance Modelling', 4, 720, 42000, 280, ['gen_geno'], 'Predicted offspring distributions in the breeding station.', [flag('breedPredict')]),
   t('gen_seq', 'genetics', 'Genome Sequencing', 4, 1100, 75000, 330, ['gen_geno'], 'Unlocks level-3 full sequencing and faster analysis.', [flag('analysis3'), mul('analysisSpeed', 1.3)]),
   t('gen_inter', 'genetics', 'Intergeneric Crosses', 5, 3400, 480000, 600, ['gen_hybrid', 'mut_novel'], 'Cross plants from different genera within one family.', [flag('intergeneric')]),
-  t('gen_edit', 'genetics', 'Targeted Gene Editing', 6, 10000, 3500000, 900, ['gen_seq'], 'Directly edit alleles in sequenced plants.', [flag('geneEdit')]),
-  t('gen_ai', 'genetics', 'Machine-Learned Genomics', 6, 14000, 6000000, 1100, ['gen_edit'], 'Analysis is twice as fast and half the price.', [mul('analysisSpeed', 2), mul('analysisCost', 0.5)]),
+  t('gen_edit', 'genetics', 'Targeted Gene Editing', 6, 10000, 6500000, 900, ['gen_seq'], 'Directly edit alleles in sequenced plants.', [flag('geneEdit')]),
+  t('gen_ai', 'genetics', 'Machine-Learned Genomics', 6, 14000, 11000000, 1100, ['gen_edit'], 'Analysis is twice as fast and half the price.', [mul('analysisSpeed', 2), mul('analysisCost', 0.5)]),
   // ---- Laboratory Automation ------------------------------------------------------------------
   t('auto_water', 'automation', 'Automated Watering Lines', 2, 60, 900, 100, ['env_reservoir'], 'Irrigation lines water every plant when it is thirsty.', [flag('autoWater')]),
   t('auto_feed', 'automation', 'Automated Fertigation', 3, 170, 4200, 140, ['auto_water', 'env_nutrients'], 'Feeds plants automatically.', [flag('autoFeed')]),
@@ -103,7 +103,7 @@ export const TECHS: TechDef[] = [
   t('auto_sales', 'automation', 'Automated Sales Platform', 5, 2200, 260000, 440, ['auto_harvest', 'com_market'], 'Sale stock is sold automatically by your rules.', [flag('autoSell')]),
   t('auto_tissue', 'automation', 'Tissue-Culture Robotics', 5, 2600, 320000, 480, ['prop_tc', 'auto_plant'], 'Keeps your tissue culture stations running on their own.', [flag('autoTissue')]),
   t('auto_gantry', 'automation', 'Gantry Robotics', 5, 3000, 420000, 520, ['auto_harvest'], 'Doubles the work automation can do per second.', [mul('autoRate', 2)]),
-  t('auto_optimise', 'automation', 'Production Optimisation', 6, 9500, 3000000, 900, ['auto_gantry'], 'Lean operations: faster growth, lower wages, quicker automation.', [mul('growth', 1.15), mul('wage', 0.8), mul('autoRate', 1.5)]),
+  t('auto_optimise', 'automation', 'Production Optimisation', 6, 9500, 5500000, 900, ['auto_gantry'], 'Lean operations: faster growth, lower wages, quicker automation.', [mul('growth', 1.15), mul('wage', 0.8), mul('autoRate', 1.5)]),
   // ---- Commercial Production ----------------------------------------------------------------------
   t('com_market', 'commercial', 'Wholesale Contacts', 2, 28, 300, 45, [], 'Better trade prices on everything you sell.', [mul('sellPrice', 1.08)]),
   t('com_collectors', 'commercial', 'Collector Network', 3, 170, 3800, 130, ['com_market'], 'Collectors post commissions for specific plants.', [flag('contracts'), add('contractSlots', 2)]),
@@ -114,7 +114,7 @@ export const TECHS: TechDef[] = [
   t('com_export', 'commercial', 'International Export', 5, 2400, 290000, 480, ['com_brand'], 'New markets: higher prices and an extra commission slot.', [mul('sellPrice', 1.2), add('contractSlots', 1)]),
   t('com_licensing', 'commercial', 'Licensing Agreements', 5, 2300, 270000, 460, ['com_registry'], 'Cultivar royalties rise 80%.', [mul('royalty', 1.8)]),
   t('com_auction', 'commercial', 'Rare Plant Auctions', 5, 3000, 400000, 540, ['com_export'], 'Rarities fetch auction premiums.', [mul('rareBonus', 1.3)]),
-  t('com_empire', 'commercial', 'Global Botanical Empire', 6, 12000, 5000000, 1000, ['com_auction'], 'A household name in horticulture.', [mul('sellPrice', 1.3)]),
+  t('com_empire', 'commercial', 'Global Botanical Empire', 6, 12000, 9250000, 1000, ['com_auction'], 'A household name in horticulture.', [mul('sellPrice', 1.3)]),
   // ---- Species expeditions -----------------------------------------------------------------------
   t('exp_neotropics', 'expedition', 'Neotropical Aroid Expedition', 4, 400, 20000, 300, [], 'Unlock the velvet Anthuriums and prized climbing Philodendrons of the Neotropics, and bring back a first haul of seed.', [], { species: ['anthurium-magnificum', 'anthurium-forgetii', 'philodendron-gloriosum', 'philodendron-melanochrysum'], discoveries: 8 }),
   t('exp_sea', 'expedition', 'South-East Asian Highlands Expedition', 4, 450, 24000, 320, [], 'Unlock the jewel Alocasias of Borneo, the Philippines and the Malay highlands, and bring back a first haul of corms.', [], { species: ['alocasia-cuprea-red-secret', 'alocasia-dragon-scale', 'alocasia-melo'], discoveries: 8 }),

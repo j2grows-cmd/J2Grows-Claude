@@ -5,7 +5,7 @@ import { SAVE_VERSION, START_MONEY } from './config';
 import { baseMods } from './mods';
 
 export function newLegacy(): Legacy {
-  return { points: 0, spent: 0, ups: {}, runs: 0 };
+  return { points: 0, spent: 0, ups: {}, runs: 0, discPaid: 0 };
 }
 
 export function makeRoom(id: number, name: string, slots = 6): Room {

@@ -1,7 +1,7 @@
 // Application shell: navigation, resource bar, toasts and the welcome-back report.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { STAGES, discoveryCount, legacyGain, canPrestige, type GameState } from './engine';
+import { PRESTIGE_STAGE, STAGES, discoveryCount, legacyGain, canPrestige, type GameState } from './engine';
 import { closeAsk, dismissOffline, getAsk, getOffline, getToasts, setUi, useGame, useUi } from './store';
 import { Icon, Modal, Btn, Stat } from './ui/kit';
 import { dur, money, num } from './ui/format';
@@ -46,7 +46,7 @@ const NAV: NavItem[] = [
   { id: 'market', label: 'Market', icon: 'market', view: () => <Market />, pip: (s) => (s.market.contracts.length ? { n: s.market.contracts.length } : null) },
   { id: 'collection', label: 'Collection', icon: 'book', view: () => <Collection /> },
   { id: 'automation', label: 'Automation', icon: 'bolt', view: () => <Automation /> },
-  { id: 'legacy', label: 'Legacy', icon: 'legacy', view: () => <Legacy />, locked: (s) => (s.stage < 4 && s.legacy.runs === 0 ? 'Stage 4' : null), pip: (s) => (canPrestige(s).ok && legacyGain(s) > 0 ? { n: legacyGain(s) } : null) },
+  { id: 'legacy', label: 'Legacy', icon: 'legacy', view: () => <Legacy />, locked: (s) => (s.stage < PRESTIGE_STAGE && s.legacy.runs === 0 ? `Stage ${PRESTIGE_STAGE}` : null), pip: (s) => (canPrestige(s).ok && legacyGain(s) > 0 ? { n: legacyGain(s) } : null) },
   { id: 'settings', label: 'Settings', icon: 'gear', view: () => <Settings /> },
 ];
 

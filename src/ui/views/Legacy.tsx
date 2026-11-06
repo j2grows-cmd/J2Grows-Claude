@@ -19,7 +19,7 @@ export function Legacy() {
       <div className="stats-row" style={{ marginBottom: 16 }}>
         <Stat label="Legacy points" value={s.legacy.points} tone="purple" sub={`${s.legacy.spent} spent in total`} />
         <Stat label="Earned this run" value={money(s.stats.earnedRun)} tone="gold" />
-        <Stat label="Points on reset" value={can.ok ? `+${gain}` : '—'} tone="purple" sub={`${discoveryCount(s)} discoveries count too`} />
+        <Stat label="Points on reset" value={can.ok ? `+${gain}` : '—'} tone="purple" sub={`${Math.max(0, discoveryCount(s) - (s.legacy.discPaid ?? 0))} new discoveries count too`} />
       </div>
       <div className="grid g-main">
         <Panel title="Permanent upgrades" icon="legacy">
@@ -77,7 +77,7 @@ export function Legacy() {
             )}
           </Panel>
           <Panel title="How points are earned" icon="info">
-            <Hint>Legacy points grow with the square root of the money you earn in a run, plus a bonus for every eight discoveries. Resets pay off best once you can earn far more than the last time.</Hint>
+            <Hint>Legacy points grow with the square root of the money you earn in a run, plus a bonus for every eight discoveries made since your last reset. Resets pay off best once you can earn far more than the last time.</Hint>
             <Hint>Synthetic Botany opens a seventh research branch; the Legacy Species Pack unlocks three legendary plants.</Hint>
             <Btn small onClick={() => setUi({ view: 'research' })}>Open research ({num(s.rp)} RP)</Btn>
           </Panel>

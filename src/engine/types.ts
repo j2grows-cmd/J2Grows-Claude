@@ -279,6 +279,8 @@ export interface Legacy {
   spent: number;
   ups: Record<string, number>;
   runs: number;
+  /** Discoveries that have already earned legacy points, so a reset only pays for new ones. */
+  discPaid?: number;
 }
 
 export interface Settings {

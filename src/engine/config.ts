@@ -33,11 +33,11 @@ export interface StageDef {
 
 export const STAGES: StageDef[] = [
   { n: 1, name: 'Personal Growing Room', blurb: 'A small collection of plants, basic equipment and manual cultivation.', cost: 0, needMatured: 0, needDisc: 0, baseRooms: 1, baseSlots: 6, perks: ['Buy seeds and young plants', 'Manual watering and feeding', 'Basic research'] },
-  { n: 2, name: 'Propagation Facility', blurb: 'Cuttings, cloning, tissue culture and small-scale production.', cost: 400, needMatured: 10, needDisc: 0, baseRooms: 2, baseSlots: 8, perks: ['Cuttings, division and leaf propagation', 'Cloning and the tissue culture lab (via research)', 'More species', 'Watering automation (via research)'] },
-  { n: 3, name: 'Genetics Laboratory', blurb: 'Genetic analysis, breeding experiments and rare trait discovery.', cost: 2500, needMatured: 25, needDisc: 3, needTech: 'prop_cuttings', baseRooms: 3, baseSlots: 10, perks: ['Genetics department: analysis and cross-breeding', 'Hire your first staff', 'Collector contracts (via research)'] },
-  { n: 4, name: 'Botanical Research Centre', blurb: 'Multiple departments, specialist employees and advanced scientific equipment.', cost: 60000, needMatured: 60, needDisc: 18, needTech: 'gen_mendel', baseRooms: 5, baseSlots: 12, perks: ['Premium species expeditions', 'Hybridisation, sequencing and automation', 'Legacy system unlocked'] },
+  { n: 2, name: 'Propagation Facility', blurb: 'Cuttings, cloning, tissue culture and small-scale production.', cost: 500, needMatured: 10, needDisc: 0, baseRooms: 2, baseSlots: 8, perks: ['Cuttings, division and leaf propagation', 'Cloning and the tissue culture lab (via research)', 'More species', 'Watering automation (via research)'] },
+  { n: 3, name: 'Genetics Laboratory', blurb: 'Genetic analysis, breeding experiments and rare trait discovery.', cost: 4000, needMatured: 25, needDisc: 3, needTech: 'prop_cuttings', baseRooms: 3, baseSlots: 10, perks: ['Genetics department: analysis and cross-breeding', 'Hire your first staff', 'Collector contracts (via research)'] },
+  { n: 4, name: 'Botanical Research Centre', blurb: 'Multiple departments, specialist employees and advanced scientific equipment.', cost: 90000, needMatured: 60, needDisc: 18, needTech: 'gen_mendel', baseRooms: 5, baseSlots: 12, perks: ['Premium species expeditions', 'Hybridisation, sequencing and automation'] },
   { n: 5, name: 'Commercial Greenhouse', blurb: 'Large-scale cultivation, automated production and commercial distribution.', cost: 600000, needMatured: 150, needDisc: 40, needTech: 'com_collectors', baseRooms: 7, baseSlots: 14, perks: ['Robotic harvesting and automated sales', 'Legendary species', 'Intergeneric crosses'] },
-  { n: 6, name: 'Advanced Research Institution', blurb: 'A vast, highly automated botanical research organisation with virtually unlimited expansion.', cost: 6000000, needMatured: 400, needDisc: 80, needTech: 'gen_seq', baseRooms: 10, baseSlots: 16, perks: ['Gene editing and machine-learned genomics', 'Unlimited facility expansion', 'Maximum legacy rewards'] },
+  { n: 6, name: 'Advanced Research Institution', blurb: 'A vast, highly automated botanical research organisation with virtually unlimited expansion.', cost: 7000000, needMatured: 400, needDisc: 80, needTech: 'gen_seq', baseRooms: 10, baseSlots: 16, perks: ['Gene editing and machine-learned genomics', 'Unlimited facility expansion', 'Legacy system unlocked'] },
 ];
 
 // ---------------------------------------------------------------------------------------------
@@ -214,6 +214,11 @@ export const LEGACY: LegacyDef[] = [
   { id: 'branch', name: 'Synthetic Botany Branch', desc: 'Unlocks a seventh research branch with powerful late-game technologies.', max: 1, cost: 15, growth: 1, effects: [] },
 ];
 export const LEGACY_BY_ID: Record<string, LegacyDef> = Object.fromEntries(LEGACY.map((l) => [l.id, l]));
+
+/** The first reset is the end of the main game: the last facility stage, the whole research tree and a large run of earnings. */
+export const PRESTIGE_STAGE = 6;
+export const PRESTIGE_MIN_EARNED = 50_000_000;
+export const PRESTIGE_DIVISOR = 15000;
 export const legacyCost = (l: LegacyDef, level: number): number => Math.ceil(l.cost * l.growth ** level);
 
 // ---------------------------------------------------------------------------------------------
