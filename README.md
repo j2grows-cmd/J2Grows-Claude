@@ -20,7 +20,7 @@ npm run e2e          # builds, then clicks through the game in headless Chromium
 ```
 
 No Vite? `bun scripts/build-bun.ts` produces the same static site in `dist/` using only Bun, React and the
-files in this repo. Open `dist/index.html` through any static file server.
+files in this repo. The result is a plain static site: just open `dist/index.html` in a browser (or host the folder anywhere).
 
 Everything is client side. The game saves to the browser's local storage every 15 seconds (key
 `j2grows.save.v1`) and you can export / import a save as text from **Settings**.
