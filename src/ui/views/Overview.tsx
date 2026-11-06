@@ -7,7 +7,10 @@ import {
 import { act, setUi, toast, useGame } from '../../store';
 import { Bar, Btn, Chip, Empty, Icon, PageHead, Panel, Req, Stat } from '../kit';
 import { PlantArt } from '../PlantArt';
-import { SPECIES_LIST } from '../../engine';
+import { Banner, BrandImage } from '../HeroArt';
+import { BRAND } from '../artwork';
+import { brandColourFrom } from '../brand';
+import { SPECIES, SPECIES_LIST } from '../../engine';
 import { dur, money, num } from '../format';
 
 export function Overview() {
@@ -24,7 +27,7 @@ export function Overview() {
   const free = s.rooms.reduce((a, r) => a + r.slots.filter((x) => x == null).length, 0);
   const net = s.income - s.expense;
   const wages = totalWages(s);
-  const seenSp = new Set(Object.keys(s.seen).map((k) => k.split('x')[0])).size;
+  const seenSp = Object.keys(s.seen).filter((k) => SPECIES[k]).length;
 
   const sellMature = (): void => {
     let total = 0;
@@ -53,9 +56,11 @@ export function Overview() {
 
   return (
     <div className="page">
+      <Banner file={BRAND.bannerLogo} className="banner-top" onReady={(im) => brandColourFrom(im, 2)} />
       <PageHead title="Overview" blurb="Grow. Discover. Experiment. Evolve." right={<Chip tone="muted">Day {Math.floor(s.totalTime / 60) + 1}</Chip>} />
 
       <div className="hero" style={{ marginBottom: 16 }}>
+        <BrandImage file={BRAND.banner} width={1200} className="hero-bg" onReady={(im) => brandColourFrom(im, 2)} />
         <div>
           <div className="row gap-s" style={{ marginBottom: 6 }}>
             <Chip tone="green">Stage {s.stage} of {STAGES.length}</Chip>
@@ -86,7 +91,7 @@ export function Overview() {
           )}
         </div>
         <div className="hero-art">
-          <PlantArt sp="monstera_deliciosa" growth={1} seed={7} height={150} glow />
+          <PlantArt sp="monstera-adansonii" growth={1} seed={7} height={150} glow />
         </div>
       </div>
 

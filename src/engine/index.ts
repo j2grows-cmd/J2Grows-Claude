@@ -20,3 +20,4 @@ export * from './automation';
 export * from './prestige';
 export * from './tick';
 export * from './save';
+export * from './legacy-species';

@@ -123,8 +123,8 @@ export function makePropagule(s: GameState, spId: string, kind: PropKind, genome
 export function rescue(s: GameState): void {
   if (s.money >= 20 || s.plants.length || s.props.length || s.stock.length) return;
   if (Object.values(s.jobs).some((j) => j.length)) return;
-  for (let i = 0; i < 3; i++) s.props.push(makePropagule(s, 'epipremnum_aureum', 'seed', undefined, { origin: 'gift' }));
-  log(s, 'info', 'A neighbour who heard about your troubles dropped off three Pothos seeds. Start again!');
+  for (let i = 0; i < 3; i++) s.props.push(makePropagule(s, 'philodendron-brasil', 'seed', undefined, { origin: 'gift' }));
+  log(s, 'info', 'A neighbour who heard about your troubles dropped off three packets of Philodendron Brasil seed. Start again!');
 }
 
 export function buy(s: GameState, spId: string, kind: ShopKind): Result {

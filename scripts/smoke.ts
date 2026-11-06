@@ -3,8 +3,8 @@ import { newGame, buy, placePropagule, run, step, plantValue, sellPlant, waterPl
 const s = newGame(42);
 refreshMods(s);
 console.log('species available', availableSpecies(s).map((x) => x.id).join(','));
-console.log(buy(s, 'tradescantia_zebrina', 'seed'));
-console.log(buy(s, 'epipremnum_aureum', 'young'));
+console.log(buy(s, 'philodendron-micans', 'seed'));
+console.log(buy(s, 'philodendron-brasil', 'young'));
 for (let i = 0; i < s.props.length; i++) {
   const r = placePropagule(s, s.props[0].id, s.rooms[0].id, i);
   console.log('place', r.msg);

@@ -90,7 +90,7 @@ function ShopCard({ s, sp }: { s: GameState; sp: Species }) {
   ];
   return (
     <Panel pad={false}>
-      <div className="panel-b" style={{ display: 'grid', gridTemplateColumns: '92px 1fr', gap: 14 }}>
+      <div className="panel-b" style={{ display: 'grid', gridTemplateColumns: '112px 1fr', gap: 14 }}>
         <div style={{ height: 112, display: 'grid', alignItems: 'end' }}>
           <PlantArt sp={sp.id} growth={0.85} seed={sp.id.length * 13} height={112} />
         </div>
@@ -227,7 +227,7 @@ function Contracts({ s }: { s: GameState }) {
             return (
               <Panel key={c.id} title={c.buyer} icon="star" right={<Chip tone="muted">{dur(c.expires - s.time)} left</Chip>}>
                 <div className="row top">
-                  <div style={{ width: 90, height: 100, display: 'grid', alignItems: 'end' }}>
+                  <div style={{ width: 100, height: 100, display: 'grid', alignItems: 'end' }}>
                     <PlantArt sp={c.sp} growth={1} seed={c.id} height={100} />
                   </div>
                   <div className="grow-1">

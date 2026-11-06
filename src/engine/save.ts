@@ -4,6 +4,7 @@ import type { GameState } from './types';
 import { SAVE_KEY, SAVE_VERSION } from './config';
 import { newGame } from './state';
 import { baseMods, refreshMods } from './mods';
+import { migrateLegacySpecies } from './legacy-species';
 
 type Dict = Record<string, unknown>;
 
@@ -17,7 +18,7 @@ export function serialize(s: GameState): string {
 
 export function deserialize(json: string): GameState | null {
   try {
-    const data = JSON.parse(json) as Dict;
+    const data = JSON.parse(migrateLegacySpecies(json)) as Dict;
     if (!data || typeof data !== 'object' || !Array.isArray(data.rooms) || !Array.isArray(data.plants)) return null;
     const base = newGame(1) as unknown as Dict;
     const out: Dict = { ...base };

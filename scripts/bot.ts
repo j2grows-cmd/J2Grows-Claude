@@ -55,6 +55,8 @@ function chase(s: GameState, blog: BotLog, saving: boolean): void {
   else buyUpgrade(s, goal.id);
 }
 
+const totalSlots = (s: GameState): number => s.rooms.reduce((a, r) => a + r.slots.length, 0);
+
 export function botAct(s: GameState, blog: BotLog): void {
   const f = s.mods.flags;
   const autoCare = f.autoWater && f.autoFeed;
@@ -101,14 +103,14 @@ export function botAct(s: GameState, blog: BotLog): void {
     for (const p of s.plants) {
       if (p.stage === 'mature' && p.analysis === 0 && s.jobs.analysis.length < 3) startAnalysis(s, p.id);
       if (p.tags.length && p.analysis >= 1 && p.stage === 'mature' && !p.cultivar && f.cultivars && s.money > 3000) registerCultivar(s, p.id, '');
-      if (p.tags.length && !p.keeper && s.plants.filter((x) => x.keeper).length < 6) setFlag(s, p.id, 'keeper');
+      if (p.tags.length && !p.keeper && s.plants.filter((x) => x.keeper).length < Math.min(6, Math.max(1, Math.floor(totalSlots(s) / 4)))) setFlag(s, p.id, 'keeper');
     }
   }
 
   // --- selling ---
   for (const p of [...s.plants]) {
     if (p.stage !== 'mature' || p.mother || p.keeper) continue;
-    if (s.stage >= 3 && p.analysis === 0 && s.jobs.analysis.length < 3 && s.upgrades.lvl_genetics) continue;
+    if (s.stage >= 3 && p.analysis === 0 && s.jobs.analysis.length < 3 && s.upgrades.lvl_genetics && s.money > 600) continue; // wait to analyse only when it can be afforded
     sellPlant(s, p);
   }
 

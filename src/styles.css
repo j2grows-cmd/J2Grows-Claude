@@ -19,6 +19,9 @@
   --gold: #dfb85c;
   --red: #e2776b;
   --purple: #a891e8;
+  --brand: #8fd18a;
+  --brand-2: #3f9a5a;
+  --brand-glow: rgba(80, 180, 110, 0.35);
   --radius: 14px;
   --shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
   --serif: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
@@ -36,7 +39,7 @@ body,
 }
 body {
   margin: 0;
-  background: radial-gradient(1200px 700px at 78% -10%, rgba(62, 130, 88, 0.2), transparent 60%), radial-gradient(900px 600px at -10% 110%, rgba(150, 175, 70, 0.1), transparent 60%), var(--bg);
+  background: radial-gradient(1200px 700px at 78% -10%, color-mix(in srgb, var(--brand-2) 30%, transparent), transparent 60%), radial-gradient(900px 600px at -10% 110%, rgba(150, 175, 70, 0.1), transparent 60%), var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 14px;
@@ -141,7 +144,19 @@ button {
   background: linear-gradient(135deg, #2f7a4f, #a9bd5a);
   display: grid;
   place-items: center;
-  box-shadow: 0 4px 16px rgba(80, 180, 110, 0.35);
+  box-shadow: 0 4px 16px var(--brand-glow);
+  overflow: hidden;
+}
+.brand-mark:has(.ready) {
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px var(--brand-glow));
 }
 .brand-name {
   font-family: var(--serif);
@@ -1245,6 +1260,27 @@ table.t tr:last-child td {
 .hero h2 {
   font-size: 30px;
 }
+.hero > div {
+  position: relative;
+  z-index: 2;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.4;
+  z-index: 0;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(8, 18, 13, 0.94) 0%, rgba(8, 18, 13, 0.72) 55%, rgba(8, 18, 13, 0.3) 100%);
+}
 .hero-art {
   height: 150px;
   opacity: 0.95;
@@ -1444,4 +1480,109 @@ table.t tr:last-child td {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---- Hero artwork (species pictures from storage) ---- */
+.pic {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  display: block;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.pic-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 88%;
+  transition: opacity 0.35s ease, transform 0.6s ease, filter 0.6s ease;
+  user-select: none;
+}
+.pic-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle at 50% 52%, #000 28%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 52%, #000 28%, transparent 72%);
+}
+.pic-var {
+  mix-blend-mode: soft-light;
+}
+.pic-spots {
+  mix-blend-mode: multiply;
+  opacity: 0.8;
+}
+.pic-spark {
+  position: absolute;
+  top: 3%;
+  right: 3%;
+  width: 20%;
+  height: 20%;
+  max-width: 28px;
+  max-height: 28px;
+  filter: drop-shadow(0 0 4px rgba(233, 247, 184, 0.7));
+  pointer-events: none;
+}
+.pic-pot {
+  position: absolute;
+  left: 6%;
+  bottom: 6%;
+  width: 20%;
+  max-width: 24px;
+  aspect-ratio: 1;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(7, 16, 12, 0.78);
+  color: var(--glass);
+}
+.pic-parent {
+  position: absolute;
+  right: 5%;
+  bottom: 5%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(7, 16, 12, 0.85);
+  background: #0b1511;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.pic-parent img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---- Brand banners ---- */
+.banner {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--line-2);
+  box-shadow: 0 10px 40px -14px var(--brand-glow);
+  max-height: clamp(130px, 30vw, 300px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.banner.on {
+  opacity: 1;
+}
+.banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.banner-top {
+  margin-bottom: 16px;
+}
+.banner-modal {
+  margin-bottom: 14px;
+  max-height: 150px;
+  border-radius: 12px;
 }

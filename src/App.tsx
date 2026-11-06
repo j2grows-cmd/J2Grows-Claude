@@ -6,6 +6,9 @@ import { closeAsk, dismissOffline, getAsk, getOffline, getToasts, setUi, useGame
 import { Icon, Modal, Btn, Stat } from './ui/kit';
 import { dur, money, num } from './ui/format';
 import { PlantDetailHost } from './ui/PlantDetail';
+import { Banner, BrandImage } from './ui/HeroArt';
+import { BRAND } from './ui/artwork';
+import { brandColourFrom, setFavicon } from './ui/brand';
 import { Overview } from './ui/views/Overview';
 import { Cultivation } from './ui/views/Cultivation';
 import { TissueCulture } from './ui/views/TissueCulture';
@@ -61,7 +64,11 @@ export function App() {
       <nav className="side" aria-label="Main">
         <div className="brand">
           <div className="brand-mark">
-            <Icon name="plant" size={20} />
+            <BrandImage
+              file={BRAND.logo} width={84} className="brand-logo" alt="J2Grows"
+              onReady={(im) => { brandColourFrom(im, 1); setFavicon(im.currentSrc); }}
+              fallback={<Icon name="plant" size={20} />}
+            />
           </div>
           <div>
             <div className="brand-name">J2Grows</div>
@@ -154,6 +161,7 @@ export function App() {
             </Btn>
           }
         >
+          <Banner file={BRAND.banner} width={900} className="banner-modal" />
           <p className="muted">
             You were away for {dur(offline.seconds)}. Your laboratory kept working for {dur(offline.credited)} at reduced efficiency (offline caps and efficiency can be raised through research and upgrades).
           </p>

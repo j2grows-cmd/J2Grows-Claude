@@ -2,23 +2,14 @@
 // its expressed genes (size, shape, colour, variegation) and its current condition.
 
 import { useMemo } from 'react';
+import { HeroPlant } from './HeroArt';
+import { useArt } from './artwork';
+import { mulberry } from './rng';
 import {
   effectiveSpecies, leafColourHex, mixHex, patternOf, phenotype, variegationHue, variegationTier,
   type Genome, type Pheno, type Species,
 } from '../engine';
 
-// ---------------------------------------------------------------------------------------------
-// small deterministic RNG for stable artwork
-// ---------------------------------------------------------------------------------------------
-function mulberry(seed: number): () => number {
-  let a = (seed >>> 0) || 1;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), a | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 const clamp = (x: number, a = 0, b = 1): number => (x < a ? a : x > b ? b : x);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const f = (n: number): string => (Math.round(n * 1000) / 1000).toString();
@@ -279,7 +270,7 @@ export interface PlantArtProps {
   className?: string;
 }
 
-export function PlantArt({ sp, hy, genome, pheno, growth = 1, health = 100, hydration = 70, infected, seed = 1, pot = 'standard', height, glow, sparkle, bare, className }: PlantArtProps) {
+export function DrawnPlant({ sp, hy, genome, pheno, growth = 1, health = 100, hydration = 70, infected, seed = 1, pot = 'standard', height, glow, sparkle, bare, className }: PlantArtProps) {
   const species = effectiveSpecies(sp, hy);
   const ph = useMemo(() => pheno ?? (genome ? phenotype(genome) : null), [pheno, genome]);
   const leafSize = ph?.leafSize ?? 0.5;
@@ -416,4 +407,14 @@ export function LeafIcon({ sp, size = 22 }: { sp: string; size?: number }) {
       <path d={d} fill={col} stroke={s.palette[0]} strokeWidth={compound ? 0 : 0.04} />
     </svg>
   );
+}
+
+/**
+ * The plant picture used throughout the game: the species' hero artwork, adjusted for this plant's genes and
+ * condition, or the procedural drawing when the picture is switched off or cannot be loaded.
+ */
+export function PlantArt(props: PlantArtProps) {
+  const art = useArt();
+  if (art.drawn(props.sp)) return <DrawnPlant {...props} />;
+  return <HeroPlant key={props.sp} {...props} />;
 }

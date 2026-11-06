@@ -16,7 +16,7 @@ const fresh = (seed = 1): GameState => {
 };
 
 /** Plant one seed of a species straight into the first free slot and return the plant. */
-function plantOne(s: GameState, sp = 'epipremnum_aureum'): Plant {
+function plantOne(s: GameState, sp = 'philodendron-brasil'): Plant {
   const before = s.plants.length;
   // Germination is a real random roll; retry (paying again) until a seed takes.
   for (let attempt = 0; attempt < 20 && s.plants.length === before; attempt++) {
@@ -76,7 +76,7 @@ test('a clearly dominant allele masks a recessive one; equal dominance blends', 
 
 test('recombination without mutation passes on one allele per gene from each parent', () => {
   const s = fresh(5);
-  const sp = SPECIES['monstera_deliciosa'];
+  const sp = SPECIES['monstera-adansonii'];
   const a = wildGenome(s, sp);
   const b = wildGenome(s, sp);
   for (let i = 0; i < 50; i++) {
@@ -93,7 +93,7 @@ test('recombination without mutation passes on one allele per gene from each par
 
 test('mendelian ratios: crossing two heterozygotes shows the recessive about a quarter of the time', () => {
   const s = fresh(11);
-  const sp = SPECIES['epipremnum_aureum'];
+  const sp = SPECIES['philodendron-brasil'];
   const base = wildGenome(s, sp);
   const het: Genome = copyGenome(base);
   het.leafSize = [{ v: 0.9, d: 0.9 }, { v: 0.1, d: 0.1 }];
@@ -109,7 +109,7 @@ test('mendelian ratios: crossing two heterozygotes shows the recessive about a q
 
 test('cloning copies the genome exactly unless a sport occurs, and sports are flagged', () => {
   const s = fresh(3);
-  const g = wildGenome(s, SPECIES['hoya_carnosa']);
+  const g = wildGenome(s, SPECIES['alocasia-polly']);
   const exact = cloneGenome(s, g, 0, { rate: 1, novel: 1 });
   assert.equal(exact.sport, false);
   assert.deepEqual(exact.genome, g);
@@ -122,7 +122,7 @@ test('cloning copies the genome exactly unless a sport occurs, and sports are fl
 
 test('heterozygosity is zero for a doubled-haploid and positive for a wild plant', () => {
   const s = fresh(9);
-  const g = wildGenome(s, SPECIES['epipremnum_aureum']);
+  const g = wildGenome(s, SPECIES['philodendron-brasil']);
   const homo = copyGenome(g);
   for (const id of GENE_IDS) homo[id][1] = { ...homo[id][0] };
   assert.equal(heterozygosity(homo), 0);
@@ -140,7 +140,7 @@ test('discoveries are defined for every gene and the catalogue is large', () => 
 
 test('a plant carrying an extreme trait qualifies for the matching discovery once analysed', () => {
   const s = fresh(21);
-  const pl = makePlant(s, makePropagule(s, 'monstera_deliciosa', 'seed'));
+  const pl = makePlant(s, makePropagule(s, 'monstera-adansonii', 'seed'));
   pl.genome.leafSize = [{ v: 0.98, d: 0.9 }, { v: 0.98, d: 0.9 }];
   pl.growth = 1;
   pl.analysis = 1;
@@ -155,8 +155,8 @@ test('a plant carrying an extreme trait qualifies for the matching discovery onc
 test('the same seed and the same actions give an identical game', () => {
   const play = () => {
     const s = fresh(77);
-    plantOne(s, 'tradescantia_zebrina');
-    plantOne(s, 'syngonium_podophyllum');
+    plantOne(s, 'philodendron-micans');
+    plantOne(s, 'alocasia-cucullata');
     tend(s, 240);
     return JSON.stringify({ ...s, mods: undefined, savedAt: 0 });
   };
@@ -280,8 +280,8 @@ test('breeding two mature plants yields seeds that carry mixed genes', () => {
   s.stage = 3;
   s.modsDirty = true;
   refreshMods(s);
-  const a = plantOne(s, 'epipremnum_aureum');
-  const b = plantOne(s, 'epipremnum_aureum');
+  const a = plantOne(s, 'philodendron-brasil');
+  const b = plantOne(s, 'philodendron-brasil');
   for (const p of [a, b]) {
     p.growth = 1;
     p.stage = 'mature';
@@ -360,7 +360,7 @@ test('offline progress is capped, partial, and ignores very short absences', () 
 
 test('offline time grows plants, so a returning player finds mature plants waiting', () => {
   const s = fresh(61);
-  plantOne(s, 'tradescantia_zebrina');
+  plantOne(s, 'philodendron-micans');
   const rep = simulateOffline(s, 3600);
   assert.ok(rep);
   assert.ok(s.plants.length === 0 || s.plants[0].growth > 0.5 || s.stats.matured > 0 || s.stats.died > 0);
@@ -373,7 +373,7 @@ test('prestige is locked early, pays out later, and keeps permanent progress', (
   s.stage = 4;
   s.stats.earnedRun = 400000;
   s.stats.earned = 400000;
-  s.discoveries['leafSize_hi1|epipremnum_aureum'] = { t: 1, plant: 1, plantName: 'x' };
+  s.discoveries['leafSize_hi1|philodendron-brasil'] = { t: 1, plant: 1, plantName: 'x' };
   s.money = 12345;
   plantOne(s);
   assert.equal(canPrestige(s).ok, true);
@@ -402,7 +402,7 @@ test('flagging a plant as a mother or keeper is remembered', () => {
 
 test('a short absence does not wreck a comfortable lab: no outbreaks start while the player is away', () => {
   const s = fresh(90);
-  for (let i = 0; i < 4; i++) plantOne(s, i % 2 ? 'epipremnum_aureum' : 'syngonium_podophyllum');
+  for (let i = 0; i < 4; i++) plantOne(s, i % 2 ? 'philodendron-brasil' : 'alocasia-cucullata');
   run(s, 60);
   const report = simulateOffline(s, 4 * 3600);
   assert.ok(report, 'an absence of hours produces a report');

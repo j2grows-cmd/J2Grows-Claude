@@ -1,8 +1,10 @@
 // Headless UI check: boots dist/ in Chromium (optionally from a save file), walks every view and
 // takes screenshots. Fails on page errors.
-//   node scripts/shoot.cjs <outDir> [view,view,...] [saveFile]
+//   [ART=all|originals|offline|missing|none] node scripts/shoot.cjs <outDir> [view,view,...] [saveFile]
+// ART picks how the Supabase artwork is mocked (see scripts/mock-art.cjs); 'none' leaves the network alone.
 const { chromium } = require('playwright');
 const path = require('path');
+const { installArtMock } = require('./mock-art.cjs');
 const http = require('http');
 const fs = require('fs');
 
@@ -27,7 +29,9 @@ const LABEL = { overview: 'Overview', cultivation: 'Cultivation', tissue: 'Tissu
   await new Promise((r) => server.listen(0, r));
   const url = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  if ((process.env.ART || 'originals') !== 'none') await installArtMock(ctx, process.env.ART || 'originals');
+  const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)|ERR_|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });

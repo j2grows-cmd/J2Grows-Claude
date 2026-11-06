@@ -1,11 +1,15 @@
 // Research & technology tree: eight categories, laid out in columns by facility stage.
 
 import {
-  SPECIES, TECHS, TECH_BY_ID, TECH_CATS, rpRate, startProject, techState, type Effect, type GameState, type TechDef,
+  SPECIES, SPECIES_LIST, TECHS, TECH_BY_ID, TECH_CATS, rpRate, startProject, techState, type Effect, type GameState, type TechDef,
 } from '../../engine';
 import { act, setTab, useGame, useUi } from '../../store';
 import { Bar, Btn, Chip, Icon, PageHead, Panel, Stat, Tabs } from '../kit';
 import { dur, money, num } from '../format';
+
+/** Species an expedition unlocks beyond the specimens it brings back. */
+const extraUnlocks = (techId: string, shown: string[]): number =>
+  SPECIES_LIST.filter((sp) => sp.unlock.expedition === techId && !shown.includes(sp.id)).length;
 
 const LABEL: Record<string, string> = {
   growth: 'Growth speed', research: 'Research output', rpFlat: 'Base research', analysisSpeed: 'Analysis speed', analysisSlots: 'Analysis slots', breedSlots: 'Breeding stations',
@@ -118,6 +122,7 @@ function TechCard({ s, t }: { s: GameState; t: TechDef }) {
               {SPECIES[id]?.common[0] ?? id}
             </Chip>
           ))}
+          {extraUnlocks(t.id, t.species) > 0 && <Chip tone="purple">+{extraUnlocks(t.id, t.species)} more species</Chip>}
         </div>
       )}
       {t.req.length > 0 && st.status !== 'done' && (

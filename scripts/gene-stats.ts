@@ -1,7 +1,7 @@
 import { wildGenome, phenotype, SPECIES, GENE_IDS, recombine, newGame, qualifying, DISCOVERIES, mutParams, refreshMods, makePropagule, makePlant } from '../src/engine';
 
 const s = newGame(7); refreshMods(s);
-const sp = SPECIES['monstera_deliciosa'];
+const sp = SPECIES['monstera-adansonii'];
 const N = 4000;
 const acc: Record<string, number[]> = {};
 for (let i = 0; i < N; i++) { const p = phenotype(wildGenome(s, sp)); for (const g of GENE_IDS) (acc[g] ??= []).push(p[g]); }

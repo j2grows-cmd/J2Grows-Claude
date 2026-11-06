@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { act, askConfirm, exportText, importText, newRun, save, toast, useGame } from '../../store';
 import { Btn, Hint, PageHead, Panel, Stat } from '../kit';
+import { retryArtwork, setArtMode, useArt, type ArtMode } from '../artwork';
 import { dur } from '../format';
 
 export function Settings() {
   const s = useGame();
   const [text, setText] = useState('');
   const [exported, setExported] = useState('');
+  const art = useArt();
   return (
     <div className="page">
       <PageHead title="Settings" blurb="Game speed, saving and fresh starts." />
@@ -31,6 +33,26 @@ export function Settings() {
               <div className="row">
                 <Btn icon="save" onClick={() => { save(); toast('Game saved.', 'good'); }}>Save now</Btn>
               </div>
+            </div>
+          </Panel>
+          <Panel title="Artwork" icon="plant">
+            <div className="stack" style={{ gap: 12 }}>
+              <div className="row between">
+                <label htmlFor="art">Plant pictures</label>
+                <select id="art" value={art.mode} onChange={(e) => setArtMode(e.target.value as ArtMode)}>
+                  <option value="hero">Species artwork</option>
+                  <option value="drawn">Drawn plants (no downloads)</option>
+                </select>
+              </div>
+              {art.mode === 'hero' && (art.unreachable || art.failed > 0) && (
+                <div className="row between wrap">
+                  <span className="muted" style={{ fontSize: 12.5 }}>
+                    {art.unreachable ? 'The artwork server could not be reached, so plants are drawn instead.' : `${art.failed} picture${art.failed > 1 ? 's' : ''} could not be loaded and are drawn instead.`}
+                  </span>
+                  <Btn kind="ghost" onClick={retryArtwork}>Try again</Btn>
+                </div>
+              )}
+              <Hint>Species pictures are downloaded as you browse and cached by your browser. Choose drawn plants to play without any downloads.</Hint>
             </div>
           </Panel>
           <Panel title="Export / import" icon="save">

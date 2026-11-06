@@ -5,6 +5,7 @@
 // Exits 1 on any failed expectation or page error.
 const { chromium } = require('playwright');
 const path = require('path');
+const { installArtMock } = require('./mock-art.cjs');
 const http = require('http');
 const fs = require('fs');
 
@@ -32,6 +33,8 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
   const url = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  // Stand-in for the Supabase artwork buckets: the image transformer is "unavailable" (the free-plan case), originals work.
+  const artStats = await installArtMock(ctx, 'originals');
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -48,6 +51,26 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
   const nav = (label) => page.click(`.nav:has-text("${label}")`);
   const bodyText = () => page.textContent('.app');
 
+  console.log('Artwork');
+  await step('logo, banner and favicon come from the Artwork bucket', async () => {
+    await page.waitForSelector('.brand-logo.ready', { timeout: 4000 });
+    await page.waitForSelector('.banner-top.on img', { timeout: 4000 });
+    expect(await page.evaluate(() => (document.querySelector('.brand-logo')).naturalWidth > 0), 'logo did not decode');
+    expect((await page.getAttribute('link[rel~="icon"]', 'href')).includes('supabase.co'), 'favicon was not switched to the logo');
+    const brand = await page.evaluate(() => document.documentElement.style.getPropertyValue('--brand'));
+    expect(/^hsl\(/.test(brand), 'accent colour was not measured from the artwork: "' + brand + '"');
+    for (const f of ['Artwork/logo.png', 'Artwork/banner.png', 'Artwork/banner with logo.png']) expect(artStats.urls.has(f), f + ' was never requested');
+  });
+  await step('image transformer failure falls back to originals, and is remembered', async () => {
+    expect(artStats.render > 0 && artStats.object > 0, 'expected both a resized attempt and an original request');
+    const before = artStats.render;
+    await page.click('.nav:has-text("Collection")');
+    await page.waitForSelector('.pic img', { timeout: 4000 });
+    await page.waitForTimeout(500);
+    expect(artStats.render - before <= 1, 'kept asking the transformer after it failed (' + (artStats.render - before) + ' extra requests)');
+    await page.click('.nav:has-text("Overview")');
+  });
+
   await step('locked departments are marked, not hidden', async () => {
     const t = await page.locator('.nav:has-text("Genetics")').getAttribute('class');
     expect(/lock|dim|disabled/.test(t || '') || (await page.locator('.nav:has-text("Genetics") svg').count()) > 0, 'Genetics nav has no lock state');
@@ -60,6 +83,13 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
     expect(before === 1, 'no cultivation nav');
     await page.locator('button:has-text("Young plant")').first().click();
     await page.waitForTimeout(200);
+  });
+  await step('shop cards show the species hero picture', async () => {
+    await page.waitForSelector('.pic img', { timeout: 4000 });
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(() => { const imgs = [...document.querySelectorAll('.pic img.pic-img')]; return { n: imgs.length, ok: imgs.filter((i) => i.naturalWidth > 0).length, hero: imgs.every((i) => /plant-images\/(species|Species)\/[a-z-]+\/hero\.png/.test(i.src)) }; });
+    expect(r.n >= 6 && r.ok === r.n, `expected loaded pictures, got ${r.ok}/${r.n}`);
+    expect(r.hero, 'a picture was not the species hero.png');
   });
   await nav('Cultivation');
   await step('plant it in the first empty slot', async () => {
@@ -114,6 +144,36 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
     await page.waitForTimeout(100);
     expect((await page.locator('.modal').count()) === 0, 'modal did not close with Escape');
   });
+
+  console.log('Artwork settings and fallbacks');
+  await step('switching to drawn plants shows no pictures and keeps the game working', async () => {
+    await nav('Settings');
+    await page.selectOption('#art', 'drawn');
+    await nav('Market');
+    await page.waitForTimeout(200);
+    expect((await page.locator('.pic').count()) === 0, 'pictures still shown in drawn mode');
+    expect((await page.locator('svg[role="img"]').count()) > 3, 'no drawn plants in drawn mode');
+    await nav('Settings');
+    await page.selectOption('#art', 'hero');
+    await nav('Market');
+    await page.waitForSelector('.pic img', { timeout: 4000 });
+  });
+  for (const mode of ['offline', 'missing']) {
+    await step(`artwork ${mode}: every plant is drawn instead, no errors`, async () => {
+      const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await installArtMock(c2, mode);
+      const p3 = await c2.newPage();
+      p3.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+      await p3.goto(url);
+      await p3.waitForSelector('.app');
+      await p3.click('.nav:has-text("Market")');
+      await p3.waitForTimeout(900);
+      const r = await p3.evaluate(() => ({ pics: document.querySelectorAll('.pic img').length, svgs: document.querySelectorAll('svg[role="img"]').length, broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.offsetParent).length }));
+      expect(r.pics === 0 && r.svgs > 3 && r.broken === 0, `pics ${r.pics}, drawn ${r.svgs}, broken ${r.broken}`);
+      expect((await p3.locator('.banner').count()) === 0, 'banner placeholder left behind');
+      await c2.close();
+    });
+  }
 
   console.log('Save, import, export');
   await nav('Settings');
