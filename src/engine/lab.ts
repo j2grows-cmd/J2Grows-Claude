@@ -94,6 +94,7 @@ export function setRoom(s: GameState, roomId: number, patch: Partial<RoomSetting
   const r = s.rooms.find((x) => x.id === roomId);
   if (!r) return;
   const c = r.set;
+  for (const k of Object.keys(patch) as (keyof RoomSettings)[]) if (!Number.isFinite(patch[k])) delete patch[k];
   if (patch.light != null) c.light = clamp(patch.light, 0, 100);
   if (patch.photoperiod != null) c.photoperiod = clamp(patch.photoperiod, 8, 20);
   if (patch.temp != null) c.temp = clamp(patch.temp, 10, 35);

@@ -272,6 +272,11 @@ export interface Stats {
   techs: number;
   rpEarned: number;
   maxPlants: number;
+  /** Manual or automated waterings and feedings (drives the opening guide). */
+  cares?: number;
+  /** Plant shows entered / won. */
+  shows?: number;
+  showWins?: number;
 }
 
 export interface Legacy {
@@ -281,6 +286,8 @@ export interface Legacy {
   runs: number;
   /** Discoveries that have already earned legacy points, so a reset only pays for new ones. */
   discPaid?: number;
+  /** Challenge runs that were completed (by challenge id). */
+  cleared?: string[];
 }
 
 export interface Settings {
@@ -357,6 +364,46 @@ export interface Mods {
 }
 export type NumMod = Exclude<keyof Mods, 'flags'>;
 
+/** Sampled history of the run, for the charts. Samples are `every` seconds apart and thin out as the run grows. */
+export interface Series {
+  every: number;
+  next: number;
+  t: number[];
+  money: number[];
+  rp: number[];
+  net: number[];
+  plants: number[];
+}
+
+export interface Show {
+  id: number;
+  name: string;
+  theme: ShowTheme;
+  opens: number;
+  closes: number;
+  /** Id of the plant entered, if any. */
+  entry: number | null;
+  entryName: string;
+  /** Strength of the three rival entries (the score a plant has to beat). */
+  rivals: number[];
+}
+export type ShowTheme = 'best' | 'rarity' | 'hybrid' | 'variegation' | 'foliage' | 'health';
+export interface ShowResult {
+  id: number;
+  name: string;
+  t: number;
+  place: number; // 1..4 (4 = unplaced)
+  prize: number;
+  plantName: string;
+  score: number;
+}
+export interface Shows {
+  seq: number;
+  next: number;
+  open: Show | null;
+  hist: ShowResult[];
+}
+
 export interface GameState {
   v: number;
   rng: number;
@@ -390,6 +437,12 @@ export interface GameState {
   settings: Settings;
   income: number;
   expense: number;
+  /** Achievements earned, by id -> run time earned. Kept across resets. */
+  ach: Record<string, number>;
+  shows: Shows;
+  series: Series;
+  /** Active challenge for this run (chosen at a Legacy reset). */
+  challenge: string;
   mods: Mods;
   modsDirty: boolean;
 }

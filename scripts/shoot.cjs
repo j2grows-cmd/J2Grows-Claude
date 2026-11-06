@@ -9,7 +9,7 @@ const http = require('http');
 const fs = require('fs');
 
 const out = process.argv[2] || 'shots';
-const ALL = 'overview,cultivation,tissue,genetics,research,lab,market,collection,automation,legacy,settings';
+const ALL = 'overview,cultivation,tissue,genetics,research,lab,market,collection,automation,goals,legacy,settings';
 const views = (process.argv[3] && process.argv[3] !== 'all' ? process.argv[3] : ALL).split(',');
 const saveFile = process.argv[4];
 fs.mkdirSync(out, { recursive: true });
@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
     res.end(d);
   });
 });
-const LABEL = { overview: 'Overview', cultivation: 'Cultivation', tissue: 'Tissue Culture', genetics: 'Genetics', research: 'Research', lab: 'Laboratory', market: 'Market', collection: 'Collection', automation: 'Automation', legacy: 'Legacy', settings: 'Settings' };
+const LABEL = { overview: 'Overview', cultivation: 'Cultivation', tissue: 'Tissue Culture', genetics: 'Genetics', research: 'Research', lab: 'Laboratory', market: 'Market', collection: 'Collection', automation: 'Automation', goals: 'Goals', legacy: 'Legacy', settings: 'Settings' };
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
@@ -35,6 +35,8 @@ const LABEL = { overview: 'Overview', cultivation: 'Cultivation', tissue: 'Tissu
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)|ERR_|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });
+  // the first-run statistics question would cover the screens: answer it ahead of time
+  await page.addInitScript(() => { try { localStorage.setItem('j2grows.prefs.v1', JSON.stringify({ telemetry: 'off' })); } catch (e) {} });
   if (saveFile) {
     const save = fs.readFileSync(saveFile, 'utf8');
     await page.addInitScript((s) => { try { localStorage.setItem('j2grows.save.v1', s); } catch (e) {} }, save);

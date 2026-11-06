@@ -125,7 +125,7 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
   await step('laboratory tabs switch', async () => {
     for (const t of ['Departments', 'Staff', 'Facility']) { await page.click(`.tabs .tab:has-text("${t}")`); await page.waitForTimeout(80); }
   });
-  for (const v of ['Tissue Culture', 'Genetics', 'Collection', 'Automation', 'Legacy', 'Overview']) {
+  for (const v of ['Tissue Culture', 'Genetics', 'Collection', 'Automation', 'Goals', 'Legacy', 'Overview']) {
     await step(`view "${v}" opens without errors`, async () => {
       await nav(v);
       await page.waitForTimeout(120);
@@ -134,6 +134,48 @@ const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
       else expect((await page.locator('h1').count()) > 0, 'no page heading');
     });
   }
+  await step('goals: achievements and shows tabs, and the next-step advice', async () => {
+    await nav('Goals');
+    expect((await bodyText()).includes('What to do now'), 'no advice panel');
+    await page.click('.tabs .tab:has-text("Achievements")');
+    expect((await page.locator('.ach').count()) > 30, 'achievements missing');
+    await page.click('.tabs .tab:has-text("Shows")');
+    expect((await bodyText()).includes('Shows begin once you reach Stage 2'), 'shows tab should explain it is locked at Stage 1');
+  });
+  await step('the manual opens, is searchable, traps focus and closes on Escape', async () => {
+    await page.click('button[aria-label="How to play"]');
+    await page.waitForSelector('.modal');
+    await page.fill('.help-nav input[type="search"]', 'allele');
+    expect((await page.locator('.help-link').count()) >= 1, 'search found nothing for "allele"');
+    for (let i = 0; i < 30; i++) await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement && !!document.activeElement.closest('.modal')), 'focus escaped the dialog');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(100);
+    expect((await page.locator('.modal').count()) === 0, 'dialog did not close');
+  });
+  await step('feedback report is generated without personal data', async () => {
+    await page.click('.side-feedback');
+    await page.waitForSelector('.modal');
+    await page.locator('.modal details summary').click();
+    const rep = await page.locator('.modal pre').innerText();
+    expect(/J2Grows playtest report/.test(rep) && /Summary/.test(rep), 'report missing sections');
+    expect(!/@/.test(rep), 'report must not contain an email address');
+    await page.keyboard.press('Escape');
+  });
+  await step('a corrupted save is repaired on load and the game still starts', async () => {
+    const bad = await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('j2grows.save.v1') || '{}');
+      if (raw.plants && raw.plants[0]) { raw.plants[0].health = null; raw.plants[0].sp = 'not-a-plant'; }
+      raw.money = null;
+      localStorage.setItem('j2grows.save.v1', JSON.stringify(raw));
+      return true;
+    });
+    expect(bad, 'could not corrupt the save');
+    await page.reload();
+    await page.waitForSelector('.app');
+    expect((await page.locator('.nav').count()) > 5, 'game did not start from a damaged save');
+    expect((await page.locator('.crash').count()) === 0, 'crash screen shown');
+  });
   await step('collection species modal opens and closes', async () => {
     await nav('Collection');
     await page.locator('.sp-card, .species-card, .page button:has-text("new")').first().click();

@@ -1,7 +1,7 @@
 {
   "name": "j2grows",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "J2Grows - botanical genetics, breeding and laboratory management simulator. Grow. Discover. Experiment. Evolve.",
   "type": "module",
   "scripts": {
@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "balance": "tsx scripts/balance-sim.ts",
+    "pacing": "tsx scripts/pacing-guard.ts",
+    "playtest-report": "tsx scripts/playtest-report.ts",
     "build:bun": "bun scripts/build-bun.ts",
     "e2e": "bun scripts/build-bun.ts && node scripts/e2e.cjs",
     "shoot": "node scripts/shoot.cjs shots"

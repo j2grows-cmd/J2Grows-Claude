@@ -1,8 +1,11 @@
 // Creating a fresh game (also used by prestige resets).
 
-import type { GameState, Legacy, Room } from './types';
+import type { GameState, Legacy, Room, Series, Shows } from './types';
 import { SAVE_VERSION, START_MONEY } from './config';
 import { baseMods } from './mods';
+
+export const newSeries = (): Series => ({ every: 60, next: 60, t: [], money: [], rp: [], net: [], plants: [] });
+export const newShows = (): Shows => ({ seq: 0, next: 1500, open: null, hist: [] });
 
 export function newLegacy(): Legacy {
   return { points: 0, spent: 0, ups: {}, runs: 0, discPaid: 0 };
@@ -60,6 +63,10 @@ export function newGame(seed = (Date.now() ^ 0x5bd1e995) >>> 0, now = Date.now()
     settings: { speed: 1, autosave: true, compact: false },
     income: 0,
     expense: 0,
+    ach: {},
+    shows: newShows(),
+    series: newSeries(),
+    challenge: '',
     mods: baseMods(),
     modsDirty: true,
   };

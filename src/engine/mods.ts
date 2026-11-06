@@ -4,6 +4,7 @@
 import type { GameState, Mods, NumMod } from './types';
 import { LEGACY, UPGRADES, wageOf } from './config';
 import { TECH_BY_ID, type Effect } from './techs';
+import { CHALLENGE_BY_ID } from './challenges';
 
 export function baseMods(): Mods {
   return {
@@ -63,6 +64,8 @@ export function computeMods(s: GameState): Mods {
         break;
     }
   }
+  const ch = CHALLENGE_BY_ID[s.challenge];
+  if (ch) ch.apply(m);
   m.stability = Math.min(0.9, m.stability);
   m.diseaseResist = Math.min(0.9, m.diseaseResist);
   m.germination = Math.min(0.5, m.germination);

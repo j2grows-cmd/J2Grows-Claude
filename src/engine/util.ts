@@ -1,6 +1,7 @@
 // Small shared helpers: math + a seeded PRNG whose state lives inside the game state.
 
-export const clamp = (x: number, a = 0, b = 1): number => (x < a ? a : x > b ? b : x);
+/** Clamp to [a,b]. A NaN input gives `a`, so one bad number can never poison the simulation. */
+export const clamp = (x: number, a = 0, b = 1): number => (x !== x || x < a ? a : x > b ? b : x);
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 export const round = (x: number, d = 3): number => {
   const m = 10 ** d;

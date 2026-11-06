@@ -10,6 +10,9 @@ import { tickResearch } from './research';
 import { rescue, tickMarket, tickRoyalties } from './economy';
 import { runAutomation } from './automation';
 import { clamp } from './util';
+import { tickShows } from './shows';
+import { sampleSeries } from './series';
+import { checkAchievements } from './achievements';
 
 /** Advance the simulation by dt seconds (callers keep dt modest: <= ~1s online). */
 export function step(s: GameState, dt: number): void {
@@ -25,6 +28,9 @@ export function step(s: GameState, dt: number): void {
   drain(s, totalWages(s) * dt);
   runAutomation(s, dt);
   rescue(s);
+  tickShows(s);
+  sampleSeries(s);
+  if (Math.floor(s.time / 5) !== Math.floor((s.time - dt) / 5)) checkAchievements(s);
   if (s.modsDirty) refreshMods(s);
   const k = 1 - Math.exp(-dt / 20);
   s.income += (Ctx.inc / dt - s.income) * k;

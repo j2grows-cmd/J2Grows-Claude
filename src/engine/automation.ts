@@ -21,7 +21,8 @@ export function tendRate(s: GameState): number {
   return growerRate(s) + (anyAuto ? s.mods.autoRate * (0.5 + irr) : 0);
 }
 
-const isOn = (s: GameState, k: string, flag: string): boolean => s.auto.on[k] !== false && (!!s.mods.flags[flag] || (['water', 'feed', 'treat'].includes(k) && growerRate(s) > 0));
+/** True when this kind of automation is unlocked (or staffed) and not switched off. */
+export const isOn = (s: GameState, k: string, flag: string): boolean => s.auto.on[k] !== false && (!!s.mods.flags[flag] || (['water', 'feed', 'treat'].includes(k) && growerRate(s) > 0));
 
 // ---------------------------------------------------------------------------------------------
 // Selling rules

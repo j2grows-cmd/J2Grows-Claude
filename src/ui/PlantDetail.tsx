@@ -9,7 +9,7 @@ import {
 } from '../engine';
 import { act, askConfirm, askText, setUi, useGame, useUi } from '../store';
 import { Bar, Btn, Chip, Icon, Modal, Tabs } from './kit';
-import { GenomeView, PlantThumb, SuitView } from './plantbits';
+import { Diagnosis, GenomeView, PlantThumb, SuitView } from './plantbits';
 import { age, dur, money, pct, cap } from './format';
 
 export function PlantDetailHost() {
@@ -194,6 +194,7 @@ function CareTab({ s, p, inStock }: { s: GameState; p: Plant; inStock: boolean }
   for (const r of s.rooms) r.slots.forEach((id, i) => id == null && free.push({ room: r.id, slot: i, label: `${r.name} · slot ${i + 1}` }));
   return (
     <div className="stack">
+      <Diagnosis p={p} s={s} />
       <SuitView p={p} s={s} />
       <div className="divider" style={{ margin: 0 }} />
       <div className="row wrap">

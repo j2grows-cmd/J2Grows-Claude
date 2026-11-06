@@ -5,12 +5,15 @@ import { act, askConfirm, exportText, importText, newRun, save, toast, useGame }
 import { Btn, Hint, PageHead, Panel, Stat } from '../kit';
 import { retryArtwork, setArtMode, useArt, type ArtMode } from '../artwork';
 import { dur } from '../format';
+import { BackupsPanel, CloudPanel, DisplayPanel, PlaytestPanel } from './SettingsPanels';
+import { FeedbackModal } from '../Help';
 
 export function Settings() {
   const s = useGame();
   const [text, setText] = useState('');
   const [exported, setExported] = useState('');
   const art = useArt();
+  const [feedback, setFeedback] = useState(false);
   return (
     <div className="page">
       <PageHead title="Settings" blurb="Game speed, saving and fresh starts." />
@@ -35,6 +38,7 @@ export function Settings() {
               </div>
             </div>
           </Panel>
+          <DisplayPanel />
           <Panel title="Artwork" icon="plant">
             <div className="stack" style={{ gap: 12 }}>
               <div className="row between">
@@ -74,6 +78,9 @@ export function Settings() {
           </Panel>
         </div>
         <div className="stack">
+          <CloudPanel />
+          <BackupsPanel />
+          <PlaytestPanel onFeedback={() => setFeedback(true)} />
           <Panel title="This save" icon="info">
             <div className="stats-row">
               <Stat label="Played" value={dur(s.totalTime)} />
@@ -95,6 +102,7 @@ export function Settings() {
           </Panel>
         </div>
       </div>
+      {feedback && <FeedbackModal onClose={() => setFeedback(false)} />}
     </div>
   );
 }

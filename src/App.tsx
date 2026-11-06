@@ -1,8 +1,13 @@
 // Application shell: navigation, resource bar, toasts and the welcome-back report.
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { title as labTitle } from './engine';
 import { PRESTIGE_STAGE, STAGES, discoveryCount, legacyGain, canPrestige, type GameState } from './engine';
-import { closeAsk, dismissOffline, getAsk, getOffline, getToasts, setUi, useGame, useUi } from './store';
+import { closeAsk, dismissBeat, dismissBootNotice, dismissOffline, getAsk, getBeat, getBootNotice, getOffline, getSaveProblem, getToasts, isPrimary, save, setUi, takeOverTab, useGame, useUi } from './store';
+import { setPrefs, usePrefs } from './ui/prefs';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { FeedbackModal, HelpModal } from './ui/Help';
+import { Goals } from './ui/views/Goals';
 import { Icon, Modal, Btn, Stat } from './ui/kit';
 import { dur, money, num } from './ui/format';
 import { PlantDetailHost } from './ui/PlantDetail';
@@ -41,6 +46,7 @@ const NAV: NavItem[] = [
   } },
   { id: 'tissue', label: 'Tissue Culture', icon: 'flask', view: () => <TissueCulture />, locked: (s) => (s.stage < 2 ? 'Stage 2' : null) },
   { id: 'genetics', label: 'Genetics', icon: 'dna', view: () => <Genetics />, locked: (s) => (s.stage < 3 ? 'Stage 3' : null) },
+  { id: 'goals', label: 'Goals', icon: 'star', view: () => <Goals />, pip: (s) => (s.shows.open && s.shows.open.entry == null ? { n: 1 } : null) },
   { id: 'research', label: 'Research', icon: 'research', view: () => <Research />, pip: (s) => (s.active.length ? { n: s.active.length } : null) },
   { id: 'lab', label: 'Laboratory', icon: 'lab', view: () => <Laboratory /> },
   { id: 'market', label: 'Market', icon: 'market', view: () => <Market />, pip: (s) => (s.market.contracts.length ? { n: s.market.contracts.length } : null) },
@@ -58,9 +64,18 @@ export function App() {
   const cur = NAV.find((n) => n.id === ui.view) ?? NAV[0];
   const stage = STAGES[s.stage - 1];
   const locked = cur.locked?.(s);
+  const prefs = usePrefs();
+  const [help, setHelp] = useState(false);
+  const [feedback, setFeedback] = useState(false);
+  const bootNotice = getBootNotice();
+  const saveProblem = getSaveProblem();
+  const beat = getBeat();
+  const primary = isPrimary();
+  const t = labTitle(s);
 
   return (
     <div className="app">
+      <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to the game</a>
       <nav className="side" aria-label="Main">
         <div className="brand">
           <div className="brand-mark">
@@ -72,20 +87,21 @@ export function App() {
           </div>
           <div>
             <div className="brand-name">J2Grows</div>
-            <div className="brand-tag">Botanical genetics</div>
+            <div className="brand-tag">{t || 'Botanical genetics'}</div>
           </div>
         </div>
         {NAV.map((n) => {
           const lock = n.locked?.(s);
           const pip = n.pip?.(s);
           return (
-            <button key={n.id} type="button" className={`nav${ui.view === n.id ? ' on' : ''}${lock ? ' locked' : ''}`} onClick={() => setUi({ view: n.id })} title={lock ? `Unlocks at ${lock}` : undefined}>
+            <button key={n.id} type="button" className={`nav${ui.view === n.id ? ' on' : ''}${lock ? ' locked' : ''}`} aria-current={ui.view === n.id ? 'page' : undefined} onClick={() => setUi({ view: n.id })} title={lock ? `Unlocks at ${lock}` : undefined}>
               <Icon name={lock ? 'lock' : n.icon} />
               <span>{n.label}</span>
               {pip && <span className={`pip${pip.red ? ' red' : ''}`}>{pip.n > 99 ? '99+' : pip.n}</span>}
             </button>
           );
         })}
+        <button type="button" className="side-feedback" onClick={() => setFeedback(true)}>Send feedback</button>
         <div className="side-foot">One-time purchase · no microtransactions</div>
       </nav>
 
@@ -97,6 +113,9 @@ export function App() {
           </span>
         </div>
         <div className="top-gap" />
+        <button type="button" className="icon-btn help-btn" onClick={() => setHelp(true)} aria-label="How to play" title="How to play">
+          <b>?</b>
+        </button>
         <div className="res money" title="Money">
           <Icon name="coin" size={16} />
           <b>{money(s.money)}</b>
@@ -121,7 +140,27 @@ export function App() {
         )}
       </header>
 
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
+        {!primary && (
+          <div className="notice warn" role="alert">
+            <b>The game is open in another tab.</b> This tab is paused so the two cannot overwrite each other’s save.
+            <button type="button" className="btn btn-primary btn-s" onClick={takeOverTab}>Use this tab instead</button>
+          </div>
+        )}
+        {saveProblem && (
+          <div className="notice bad" role="alert">
+            <b>Your progress is not being saved.</b> {saveProblem.why}
+            <button type="button" className="btn btn-s" onClick={() => { save(); }}>Try again</button>
+            <button type="button" className="btn btn-s" onClick={() => setUi({ view: 'settings' })}>Export a copy</button>
+          </div>
+        )}
+        {bootNotice && (
+          <div className="notice info" role="status">
+            {bootNotice.fromBackup > 0 ? <><b>Your latest save could not be read, so an earlier backup was loaded.</b> A little recent progress may be missing.</> : <><b>Your save was repaired on loading.</b> {bootNotice.repairs.slice(0, 2).join('; ')}.</>}
+            <button type="button" className="btn btn-s btn-ghost" onClick={dismissBootNotice}>Dismiss</button>
+          </div>
+        )}
+        <ErrorBoundary key={cur.id} label={cur.label} onReset={() => setUi({ view: 'overview' })}>
         {locked ? (
           <div className="page">
             <div className="panel">
@@ -137,6 +176,7 @@ export function App() {
         ) : (
           cur.view()
         )}
+        </ErrorBoundary>
       </main>
 
       <PlantDetailHost />
@@ -150,6 +190,26 @@ export function App() {
       </div>
 
       <AskHost />
+      {help && <HelpModal onClose={() => setHelp(false)} />}
+      {feedback && <FeedbackModal onClose={() => setFeedback(false)} />}
+      {beat != null && <StageUp stage={beat} />}
+      {prefs.telemetry === 'ask' && s.totalTime > 180 && !offline && beat == null && (
+        <Modal
+          title="Help improve J2Grows?"
+          onClose={() => setPrefs({ telemetry: 'off' })}
+          footer={
+            <>
+              <Btn kind="ghost" onClick={() => setPrefs({ telemetry: 'off' })}>No thanks</Btn>
+              <Btn kind="primary" onClick={() => setPrefs({ telemetry: 'on' })}>Share anonymous statistics</Btn>
+            </>
+          }
+        >
+          <p className="muted">
+            We would like to learn how long each part of the game takes, so we can fix the slow or confusing parts. If you agree, the game sends your stage, time played and a few counters
+            (plants grown, research done) under a random id. No name, no email and no save data are ever sent, and you can switch it off in Settings at any time.
+          </p>
+        </Modal>
+      )}
 
       {offline && (
         <Modal
@@ -176,6 +236,28 @@ export function App() {
         </Modal>
       )}
     </div>
+  );
+}
+
+function StageUp({ stage }: { stage: number }) {
+  const def = STAGES[stage - 1];
+  return (
+    <Modal title={`Stage ${stage}`} onClose={dismissBeat} footer={<Btn kind="primary" onClick={dismissBeat}>Continue</Btn>}>
+      <div className="stage-up">
+        <Banner file={BRAND.banner} width={900} className="banner-modal" />
+        <h2 className="stage-up-name">{def.name}</h2>
+        <p className="muted">{def.blurb}</p>
+        <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>New at this stage</div>
+        <ul className="reqs">
+          {def.perks.map((p) => (
+            <li key={p} className="req met">
+              <Icon name="check" size={13} />
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Modal>
   );
 }
 

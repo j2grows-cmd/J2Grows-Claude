@@ -1,7 +1,7 @@
 // Reusable plant widgets: thumbnails, cards, the genome viewer and the condition breakdown.
 
 import {
-  GENES, GENE_IDS, bandIndex, colourLabel, effAnalysis, INFECTION_NAME, MEDIA_DEFS, effectiveSpecies, express, getRoom, hiddenIndex, phenoOf, plantValue, shapeLabel,
+  GENES, GENE_IDS, diagnose, bandIndex, colourLabel, effAnalysis, INFECTION_NAME, MEDIA_DEFS, effectiveSpecies, express, getRoom, hiddenIndex, phenoOf, plantValue, shapeLabel,
   sizeLabel, suitability, variegationTier, VAR_TIER_NAMES, BAND_NAMES, type GeneId, type GameState, type Plant, type Propagule, type Pheno, type Genome,
 } from '../engine';
 import { PlantArt } from './PlantArt';
@@ -154,6 +154,33 @@ export function GenomeView({ p }: { p: Plant | { genome: Genome; analysis: numbe
         );
       })}
       {level < 2 && <p className="hint">Alleles, dominance and hidden carriers need a genotype scan (Marker Genotyping research and a Genetics Laboratory).</p>}
+    </div>
+  );
+}
+
+/** Plain-language diagnosis: what is wrong with this plant's conditions, worst first, and what to do about it. */
+export function Diagnosis({ p, s }: { p: Plant; s: GameState }) {
+  const d = diagnose(s, p);
+  if (!d) return null;
+  const tone = d.trend === 'thriving' ? 'green' : d.trend === 'steady' ? 'gold' : 'red';
+  return (
+    <div className="diag" aria-live="polite">
+      <div className="row between">
+        <b>{d.issues.length ? 'Why is this struggling?' : 'How is it doing?'}</b>
+        <span className={tone}>{d.trend === 'thriving' ? 'Thriving' : d.trend === 'steady' ? 'Holding steady' : 'Declining'}</span>
+      </div>
+      {d.issues.length === 0 ? (
+        <p className="hint">Nothing is wrong. Conditions suit this plant. Healthy plants grow fastest and sell for the most.</p>
+      ) : (
+        <ol className="diag-list">
+          {d.issues.slice(0, 4).map((i) => (
+            <li key={i.key} className={i.severity > 0.6 ? 'bad' : ''}>
+              <b>{i.title}</b>
+              <span>{i.fix}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

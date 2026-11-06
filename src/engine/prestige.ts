@@ -4,8 +4,9 @@ import type { GameState } from './types';
 import { discoveryCount, fail, log, ok, type Result } from './core';
 import { LEGACY_BY_ID, PRESTIGE_DIVISOR, PRESTIGE_MIN_EARNED, PRESTIGE_STAGE, STAGES, START_MONEY, legacyCost } from './config';
 import { TECHS, TECH_BY_ID } from './techs';
-import { newGame } from './state';
+import { newGame, newSeries, newShows } from './state';
 import { refreshMods } from './mods';
+import { CHALLENGE_BY_ID } from './challenges';
 
 /** Technologies of the main tree still to research (the Synthetic Botany branch is optional endgame). */
 export const coreTechsLeft = (s: GameState): number => TECHS.filter((t) => t.cat !== 'synthetic' && !s.done[t.id]).length;
@@ -26,13 +27,20 @@ export function canPrestige(s: GameState): { ok: boolean; why?: string } {
   return { ok: true };
 }
 
-export function prestige(s: GameState): Result {
+export function prestige(s: GameState, challengeId = ''): Result {
   const c = canPrestige(s);
   if (!c.ok) return fail(c.why ?? 'Not available.');
-  const gain = legacyGain(s);
+  const next = CHALLENGE_BY_ID[challengeId];
+  if (challengeId && !next) return fail('Unknown challenge.');
+  // Finishing a challenge run pays its bonus and marks it as cleared.
+  const done = CHALLENGE_BY_ID[s.challenge];
+  const base = legacyGain(s);
+  const gain = done ? Math.floor(base * (1 + done.bonus)) : base;
+  const cleared = new Set(s.legacy.cleared ?? []);
+  if (done) cleared.add(done.id);
   const fresh = newGame(((s.rng ^ 0x9e3779b9) >>> 0) || 1, Date.now());
   const ups = s.legacy.ups;
-  fresh.legacy = { points: s.legacy.points + gain, spent: s.legacy.spent, ups: { ...ups }, runs: s.legacy.runs + 1, discPaid: discoveryCount(s) };
+  fresh.legacy = { points: s.legacy.points + gain, spent: s.legacy.spent, ups: { ...ups }, runs: s.legacy.runs + 1, discPaid: discoveryCount(s), cleared: [...cleared] };
   // what survives
   fresh.discoveries = s.discoveries;
   fresh.seen = s.seen;
@@ -42,6 +50,10 @@ export function prestige(s: GameState): Result {
   fresh.settings = s.settings;
   fresh.auto.sell = s.auto.sell;
   fresh.log = [];
+  fresh.ach = s.ach;
+  fresh.challenge = next ? next.id : '';
+  fresh.series = newSeries();
+  fresh.shows = { ...newShows(), hist: s.shows.hist };
   // retained technologies
   for (const id of Object.keys(s.done)) {
     const t = TECH_BY_ID[id];
@@ -50,11 +62,12 @@ export function prestige(s: GameState): Result {
     const keepMemory = (ups.memory ?? 0) > 0 && t.stage <= 2 && t.cat !== 'expedition';
     if (keepAuto || keepMemory) fresh.done[id] = 1; // any truthy value: 0 would read as "not researched"
   }
-  fresh.money = START_MONEY + (ups.cash ? 200 * 4 ** ups.cash : 0);
-  fresh.stage = Math.min(4, 1 + (ups.head ?? 0));
+  const bare = !!next?.bare;
+  fresh.money = START_MONEY + (!bare && ups.cash ? 200 * 4 ** ups.cash : 0);
+  fresh.stage = bare ? 1 : Math.min(4, 1 + (ups.head ?? 0));
   Object.assign(s, fresh);
   refreshMods(s);
-  log(s, 'good', `Legacy reset complete. +${gain} legacy points. A new operation begins.`);
+  log(s, 'good', `Legacy reset complete. +${gain} legacy points. A new operation begins${next ? ` under the ${next.name} challenge` : ''}.`);
   return ok(`Gained ${gain} legacy points.`);
 }
 

@@ -13,11 +13,13 @@ export const TREAT_COST = 3;
 export function waterPlant(s: GameState, p: Plant): boolean {
   if (!spend(s, WATER_COST)) return false;
   p.hydration = clamp(p.hydration + 65, 0, 100);
+  s.stats.cares = (s.stats.cares ?? 0) + 1;
   return true;
 }
 export function feedPlant(s: GameState, p: Plant): boolean {
   if (!spend(s, FEED_COST)) return false;
   p.nutrients = clamp(p.nutrients + 45, 0, 100);
+  s.stats.cares = (s.stats.cares ?? 0) + 1;
   return true;
 }
 export function treatPlant(s: GameState, p: Plant): boolean {
@@ -78,7 +80,7 @@ export function movePlant(s: GameState, id: number, roomId: number, slot: number
   const p = getPlant(s, id);
   if (!p || p.room == null) return fail('Plant not found.');
   const dest = getRoom(s, roomId);
-  if (!dest || slot < 0 || slot >= dest.slots.length) return fail('Invalid destination.');
+  if (!dest || !Number.isInteger(slot) || slot < 0 || slot >= dest.slots.length) return fail('Invalid destination.');
   if (dest.slots[slot] != null) return fail('That slot is occupied.');
   const src = getRoom(s, p.room);
   if (src) src.slots[p.slot] = null;

@@ -1,6 +1,6 @@
 // Small shared UI components.
 
-import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { cls } from './format';
 
 // ---------------------------------------------------------------------------------------------
@@ -132,14 +132,45 @@ export function Tabs({ tabs, value, onChange }: { tabs: { id: string; label: Rea
 }
 
 export function Modal({ title, onClose, children, wide, footer }: { title?: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; footer?: ReactNode }) {
+  const box = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const before = document.activeElement as HTMLElement | null;
+    const focusable = (): HTMLElement[] =>
+      Array.from(box.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []).filter((el) => !el.hasAttribute('disabled'));
+    // start on the first control that is not the close button, so Enter does the sensible thing
+    const f = focusable();
+    (f.find((el) => !el.classList.contains('icon-btn')) ?? f[0] ?? box.current)?.focus();
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeRef.current();
+      } else if (e.key === 'Tab') {
+        const items = focusable();
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const at = document.activeElement;
+        if (e.shiftKey && (at === first || !box.current?.contains(at))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (at === last || !box.current?.contains(at))) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', k);
+      before?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cls('modal', wide && 'modal-wide')} role="dialog" aria-modal="true">
+      <div ref={box} tabIndex={-1} className={cls('modal', wide && 'modal-wide')} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined}>
         <header className="modal-h">
           <h2>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">

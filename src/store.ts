@@ -2,9 +2,12 @@
 
 import { useSyncExternalStore } from 'react';
 import {
-  deserialize, exportSave, importSave, loadGame, newGame, refreshMods, run, saveGame, serialize, simulateOffline, deleteSave,
-  type GameState, type OfflineReport, type Result,
+  deserialize, exportSave, importSave, loadBackup, loadGameReport, newGame, refreshMods, run, saveGameResult, serialize, simulateOffline, deleteSave,
+  discoveryCount, type GameState, type OfflineReport, type Result,
 } from './engine';
+import { isPrimaryTab, onTabChange, startTabLock, takeOver } from './tablock';
+import { track } from './telemetry';
+import { play } from './ui/audio';
 
 export interface Toast {
   id: number;
@@ -14,6 +17,11 @@ export interface Toast {
 
 // `offline` must exist before boot() runs: boot() fills it in when the save is old.
 let offline: OfflineReport | null = null;
+export interface BootNotice {
+  fromBackup: number;
+  repairs: string[];
+}
+let bootNotice: BootNotice | null = null;
 let state: GameState = boot();
 let version = 0;
 let toastId = 1;
@@ -24,15 +32,57 @@ let lastSave = performance.now();
 const listeners = new Set<() => void>();
 
 function boot(): GameState {
-  const loaded = loadGame();
+  const rep = loadGameReport();
+  const loaded = rep?.state ?? null;
   const s = loaded ?? newGame();
   refreshMods(s);
+  if (rep && (rep.fromBackup > 0 || rep.repairs.length)) bootNotice = { fromBackup: rep.fromBackup, repairs: rep.repairs };
   if (loaded) {
     const away = (Date.now() - (loaded.savedAt || Date.now())) / 1000;
     offline = simulateOffline(s, away);
   }
   return s;
 }
+
+export const getBootNotice = (): BootNotice | null => bootNotice;
+export const dismissBootNotice = (): void => {
+  bootNotice = null;
+  notify();
+};
+
+// A stage-up is a moment worth marking: the app shows a short celebration the first time each stage is reached.
+let beat: number | null = null;
+let seenStage = state.stage;
+let lastTick = Math.floor(state.totalTime / 300);
+export const getBeat = (): number | null => beat;
+export const dismissBeat = (): void => {
+  beat = null;
+  notify();
+};
+
+/** Notices changes that deserve a sound, a celebration or a playtest milestone. */
+function watch(): void {
+  const s = state;
+  if (s.stage > seenStage) {
+    beat = s.stage;
+    play('stage');
+    track('stage', { stage: s.stage, played: Math.round(s.totalTime), run: s.legacy.runs, money: Math.round(s.money) });
+  } else if (s.stage < seenStage) {
+    track('reset', { run: s.legacy.runs, points: s.legacy.points });
+  }
+  seenStage = s.stage;
+  const tk = Math.floor(s.totalTime / 300);
+  if (tk > lastTick) {
+    lastTick = tk;
+    track('tick', { played: Math.round(s.totalTime), stage: s.stage, money: Math.round(s.money), techs: s.stats.techs, matured: s.stats.matured, disc: discoveryCount(s), plants: s.plants.length, ach: Object.keys(s.ach).length, run: s.legacy.runs });
+  }
+}
+
+export interface SaveProblem {
+  why: string;
+}
+let saveProblem: SaveProblem | null = null;
+export const getSaveProblem = (): SaveProblem | null => saveProblem;
 
 export const game = (): GameState => state;
 export const getToasts = (): Toast[] => toasts;
@@ -84,6 +134,9 @@ export function useGame(): GameState {
 }
 
 export function toast(msg: string, kind: Toast['kind'] = 'info'): void {
+  if (kind === 'discovery') play(msg.startsWith('Achievement:') ? 'achievement' : 'discovery');
+  else if (kind === 'bad') play('bad');
+  else if (kind === 'good') play('good');
   const t: Toast = { id: toastId++, kind, msg };
   toasts = [...toasts.slice(-3), t];
   notify();
@@ -102,6 +155,7 @@ export function act(fn: (s: GameState) => Result | boolean | void, quiet = false
     out = r;
     if (!quiet || !r.ok) toast(r.msg, r.ok ? 'good' : 'bad');
   }
+  watch();
   notify();
   return out;
 }
@@ -116,10 +170,32 @@ function pumpLog(): void {
   }
 }
 
-export function save(): void {
+export function save(): boolean {
+  if (!isPrimaryTab()) return false; // another tab owns the save: never overwrite it
   state.savedAt = Date.now();
-  saveGame(state);
+  const r = saveGameResult(state);
   lastSave = performance.now();
+  const had = saveProblem;
+  saveProblem = r.ok ? null : { why: r.why };
+  if (!r.ok && !had) toast('Could not save: ' + r.why, 'bad');
+  if (!!had !== !r.ok) notify();
+  return r.ok;
+}
+
+export const isPrimary = isPrimaryTab;
+/** Use this tab: reload the newest save (so nothing the other tab did is lost) and take over saving. */
+export function takeOverTab(): void {
+  takeOver();
+  const rep = loadGameReport();
+  if (rep) replaceState(rep.state);
+  notify();
+}
+
+export function restoreBackup(slot: number): boolean {
+  const s = loadBackup(slot);
+  if (!s) return false;
+  replaceState(s);
+  return true;
 }
 
 function frame(): void {
@@ -127,6 +203,7 @@ function frame(): void {
   let dt = (now - last) / 1000;
   last = now;
   if (dt <= 0) return;
+  if (!isPrimaryTab()) return; // read-only tab: the game runs in the other one
   if (dt > 20) {
     // The tab was suspended: treat it as time away.
     offline = simulateOffline(state, dt);
@@ -135,10 +212,17 @@ function frame(): void {
     run(state, Math.min(dt, 10) * state.settings.speed, 0.5);
   }
   pumpLog();
+  watch();
   notify();
   if (state.settings.autosave && now - lastSave > 15000) save();
 }
 
+startTabLock();
+onTabChange(() => {
+  last = performance.now();
+  notify();
+});
+track('session_start', { stage: state.stage, played: Math.round(state.totalTime), run: state.legacy.runs });
 setInterval(frame, 250);
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', save);

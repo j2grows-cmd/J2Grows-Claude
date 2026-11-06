@@ -27,7 +27,7 @@ export function placePropagule(s: GameState, propId: number, roomId: number, slo
   const pr = s.props[i];
   const room = getRoom(s, roomId);
   if (!room) return fail('Room not found.');
-  if (slot < 0 || slot >= room.slots.length || room.slots[slot] != null) return fail('That slot is not free.');
+  if (!Number.isInteger(slot) || slot < 0 || slot >= room.slots.length || room.slots[slot] != null) return fail('That slot is not free.');
   const sp = effectiveSpecies(pr.sp, pr.hy);
   const med = medium ?? bestMedium(sp, s);
   const mdef = MEDIA_DEFS[med];

@@ -24,7 +24,9 @@ No Vite? `bun scripts/build-bun.ts` produces the same static site in `dist/` usi
 files in this repo. The result is a plain static site: just open `dist/index.html` in a browser (or host the folder anywhere).
 
 Everything is client side. The game saves to the browser's local storage every 15 seconds (key
-`j2grows.save.v1`) and you can export / import a save as text from **Settings**.
+`j2grows.save.v1`), keeps three rolling backups, repairs damaged saves on load, and refuses to let two tabs
+overwrite each other. You can export / import a save as text, or sign in with an email code to keep a cloud copy
+(see *Cloud saves and playtesting* below).
 
 ## What is in the game
 
@@ -39,8 +41,12 @@ Everything is client side. The game saves to the browser's local storage every 1
 | **Market** | Buy stock, sell plants, take collector contracts, watch per-species prices move with demand and events, register named cultivars that earn royalties (up to three per species, one per trait line, a small trickle each). Stock bought from the shop resells for at most 60% of what it cost, so buying to flip does not pay. |
 | **Collection** | A real-species database with discovery progress, a codex of 68 discoveries (novel alleles, rare traits, record specimens…), a hall of fame of the finest plants you have bred, and every plant's individual history. |
 | **Automation** | Watering, feeding, treatment, climate control, analysis, planting, propagation, harvesting and selling, each unlocked by research and driven by a shared action budget plus your staff. Auto-sell has rules (minimum value, keep analysed plants, hold when demand is low). |
+| **Goals** | An opening guide for new players, a "what next?" advisor that reads the whole game state, 42 achievements (they unlock colour themes, never power), and **plant shows**: a themed show opens every half hour, you enter your best plant and it is judged against three rivals. |
+| **Plant diagnosis** | Every plant card explains why a plant is struggling in plain language (wrong light, too wet, fungus...) and what to change, worst problem first. |
+| **Big collections** | Filter, sort and search the plants in a room, select many at once to water, feed, treat, sell or discard, and see the run's money, research, income and plant count as charts. |
+| **Sound and display** | Synthesised sound effects and ambience (no audio files), reduce-motion, interface size, and colour themes. A manual (the ? button) covers care, genetics, analysis and the market. |
 | **Idle play** | Closing the tab does not stop the lab. On return you get a *Welcome back* report: up to 4 hours (extendable) are simulated at 50% efficiency (also improvable). Outbreaks do not begin while you are away unless conditions are genuinely poor, and plants are never lost offline. |
-| **Legacy (prestige)** | The first reset is the end of the main game: reach Stage 6, finish the whole core research tree and earn $50M in the run. You then hand on the legacy: reset the facility for Legacy Points spent on permanent upgrades (research output, discovery rewards, growth speed, offline time, prices, mutation, tissue culture…). Discoveries, the collection, cultivars and statistics are kept, and only discoveries you have not already been paid for add to the next reset's points. |
+| **Legacy (prestige)** | The first reset is the end of the main game: reach Stage 6, finish the whole core research tree and earn $50M in the run. You then hand on the legacy: reset the facility for Legacy Points spent on permanent upgrades (research output, discovery rewards, growth speed, offline time, prices, mutation, tissue culture…). Discoveries, the collection, cultivars and statistics are kept, and only discoveries you have not already been paid for add to the next reset's points. After the first reset you can start a run under a **challenge** (Bootstrap, Blight Year, Drought and Famine, Austerity); clearing it pays bonus points once. |
 
 ### A good first ten minutes
 
@@ -68,16 +74,26 @@ src/
     automation.ts  Auto systems and the action budget
     prestige.ts    Legacy resets        mods.ts   Derived modifiers recomputed from upgrades/techs/staff
     tick.ts        step(), run() and the offline simulation
-    save.ts        Serialise / deserialise / export / import with forward-compatible merging
-  store.ts       Browser store: game clock, autosave, toasts, UI navigation state
+    save.ts        Serialise / deserialise / export / import, repair of damaged saves, rolling backups
+    guide.ts       The opening guide and the "what next?" advisor (pure functions of the state)
+    achievements.ts, shows.ts, challenges.ts, series.ts, diagnose.ts   Goals, plant shows, challenge runs, run history, plant diagnosis
+  store.ts       Browser store: game clock, autosave, tab lock, toasts, UI navigation state
+  cloud.ts       Cloud saves over Supabase Auth (email code) and REST, plain fetch
+  telemetry.ts   Local milestone log, feedback report and opt-in anonymous statistics
+  tablock.ts     Keeps a second tab from overwriting the save
   ui/            React 19 function components, plain CSS (no UI library)
     artwork.ts     Supabase storage URLs, fallbacks, the Artwork setting
     HeroArt.tsx    Plant pictures (tinted by genes and health) and the logo / banner components
     PlantArt.tsx   Chooses picture or drawing; the procedural SVG plants live here
     brand.ts       Sets the browser tab icon from the logo
-scripts/         bot.ts + balance-sim.ts (pacing), gene-stats.ts, make-save.ts, smoke.ts,
-                 build-bun.ts, shoot.cjs (screenshots), e2e.cjs (browser click-through)
-tests/           engine.test.ts, species.test.ts, economy.test.ts
+    audio.ts       Web Audio sound effects and ambience     prefs.ts  Per-device preferences
+    manual.ts      The in-game manual                       charts.tsx  SVG line charts
+scripts/         bot.ts + balance-sim.ts (pacing), pacing-guard.ts (CI), playtest-report.ts, gene-stats.ts,
+                 make-save.ts, smoke.ts, build-bun.ts, shoot.cjs (screenshots), e2e.cjs (browser click-through)
+tests/           engine.test.ts, species.test.ts, economy.test.ts, progress.test.ts
+supabase/        migrations/001_*.sql: cloud saves and opt-in statistics (review, then apply)
+docs/            PLAYTEST.md (how to run a playtest), RELEASE.md (release checklist and store copy)
+.github/         workflows/ci.yml: typecheck, tests, pacing guard, build, browser test; weekly full pacing run
 ```
 
 Design notes:
@@ -96,6 +112,14 @@ Design notes:
   Stage 5 ~26-29 h, Stage 6 ~52-57 h, the whole core research tree ~78-86 h, which is when the reset opens
   (with around 150 Legacy Points on the first reset). A player who checks in only every half minute or so
   lands near 100 h. Offline time counts at 50% efficiency, so leaving the game running is slower than playing.
+
+## Cloud saves and playtesting
+
+Cloud saves and the anonymous statistics both need two tables that are **not created automatically**: review
+and run `supabase/migrations/001_cloud_saves_and_telemetry.sql` in the Supabase SQL editor, and enable email
+sign-in (one-time code) under Authentication. Until then the buttons report that the server is not set up and
+the game works exactly as before from local storage. Statistics are opt-in and anonymous (a random device id,
+stage, time played, a few counters). `docs/PLAYTEST.md` describes a first playtest round.
 
 ## Artwork
 

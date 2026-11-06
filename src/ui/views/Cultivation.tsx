@@ -3,13 +3,61 @@
 import { useMemo, useState } from 'react';
 import {
   EQUIP, MEDIA_DEFS, POT_DEFS, autoTuneRoom, bestMedium, buildRoom, buyEquip, careRoom, effectiveSpecies, equipCost, expandRoom, firstFreeSlot, maxLight, maxRooms,
-  nextRoomCost, placePropagule, propCap, propValue, renameRoom, roomExpandCost, roomSlotCap, sellProp, setRoom, WATER_COST, FEED_COST, TREAT_COST,
+  discardPlant, feedById, nextRoomCost, placePropagule, plantValue, sellPlant, setFlag, treatById, waterById, propCap, propValue, renameRoom, roomExpandCost, roomSlotCap, sellProp, setRoom, WATER_COST, FEED_COST, TREAT_COST,
   type GameState, type MediumId, type PotId, type Propagule, type Room, type Plant,
 } from '../../engine';
 import { act, setTab, setUi, useGame, useUi } from '../../store';
 import { Bar, Btn, Chip, Empty, Hint, Icon, Modal, PageHead, Panel, Slider, Stat, Tabs } from '../kit';
 import { PlantCard, PropThumb } from '../plantbits';
 import { cap, dur, money, pct } from '../format';
+import { askConfirm, toast } from '../../store';
+
+// ---------------------------------------------------------------------------------------------
+// Finding things in a big collection: filter, sort and bulk actions. The choice is remembered per device.
+// ---------------------------------------------------------------------------------------------
+
+type PlantFilter = 'all' | 'mature' | 'thirsty' | 'hungry' | 'sick' | 'struggling' | 'hybrid' | 'keepers';
+type PlantSort = 'slot' | 'health' | 'value' | 'growth' | 'name';
+const FILTERS: { id: PlantFilter; label: string }[] = [
+  { id: 'all', label: 'All' }, { id: 'mature', label: 'Mature' }, { id: 'thirsty', label: 'Thirsty' }, { id: 'hungry', label: 'Hungry' },
+  { id: 'sick', label: 'Infected' }, { id: 'struggling', label: 'Struggling' }, { id: 'hybrid', label: 'Hybrids' }, { id: 'keepers', label: 'Keepers' },
+];
+const SORTS: { id: PlantSort; label: string }[] = [
+  { id: 'slot', label: 'Room order' }, { id: 'health', label: 'Health (worst first)' }, { id: 'value', label: 'Value (highest first)' }, { id: 'growth', label: 'Growth (least first)' }, { id: 'name', label: 'Name' },
+];
+
+function usePersisted<T extends string>(key: string, fallback: T, allowed: readonly T[]): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(() => {
+    try {
+      const x = localStorage.getItem('j2grows.view.' + key) as T | null;
+      return x && allowed.includes(x) ? x : fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  return [v, (n: T) => {
+    setV(n);
+    try {
+      localStorage.setItem('j2grows.view.' + key, n);
+    } catch {
+      /* ignore */
+    }
+  }];
+}
+
+function matches(s: GameState, p: Plant, f: PlantFilter): boolean {
+  const e = effectiveSpecies(p.sp, p.hy).env;
+  switch (f) {
+    case 'mature': return p.stage === 'mature';
+    case 'thirsty': return p.hydration < e.dryBack + 4;
+    case 'hungry': return p.nutrients < e.nutrient[0];
+    case 'sick': return !!p.inf;
+    case 'struggling': return p.health < 50;
+    case 'hybrid': return !!p.hy;
+    case 'keepers': return p.keeper || p.mother;
+    default: return true;
+  }
+}
 
 export function Cultivation() {
   const s = useGame();
@@ -56,7 +104,51 @@ function idealRange(ps: Plant[], key: 'light' | 'temp' | 'rh' | 'air'): [number,
 function Rooms({ s, roomId }: { s: GameState; roomId: number | null }) {
   const room = s.rooms.find((r) => r.id === roomId) ?? s.rooms[0];
   const [pick, setPick] = useState<number | null>(null);
+  const [filter, setFilter] = usePersisted<PlantFilter>('filter', 'all', FILTERS.map((x) => x.id));
+  const [sort, setSort] = usePersisted<PlantSort>('sort', 'slot', SORTS.map((x) => x.id));
+  const [query, setQuery] = useState('');
+  const [selecting, setSelecting] = useState(false);
+  const [chosen, setChosen] = useState<Set<number>>(new Set());
   const here = plantsIn(s, room);
+  const narrowed = filter !== 'all' || query.trim() !== '' || sort !== 'slot';
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = here.filter((p) => matches(s, p, filter) && (!q || p.name.toLowerCase().includes(q) || effectiveSpecies(p.sp, p.hy).common[0].toLowerCase().includes(q)));
+    const by: Record<PlantSort, (a: Plant, b: Plant) => number> = {
+      slot: (a, b) => a.slot - b.slot,
+      health: (a, b) => a.health - b.health,
+      value: (a, b) => plantValue(s, b) - plantValue(s, a),
+      growth: (a, b) => a.growth - b.growth,
+      name: (a, b) => a.name.localeCompare(b.name),
+    };
+    return list.sort(by[sort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s, room.id, filter, sort, query, Math.floor(s.time / 2)]);
+  const chosenPlants = shown.filter((p) => chosen.has(p.id));
+  const toggle = (id: number): void => setChosen((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const bulk = (what: 'water' | 'feed' | 'treat' | 'keep' | 'sell' | 'discard'): void => {
+    const ids = chosenPlants.map((p) => p.id);
+    if (!ids.length) return;
+    if (what === 'discard') {
+      askConfirm(`Discard ${ids.length} plant${ids.length > 1 ? 's' : ''}? They cannot be recovered.`, () => { act((g) => { for (const id of ids) discardPlant(g, id); }, true); setChosen(new Set()); }, { title: 'Discard plants?', confirm: 'Discard', danger: true });
+      return;
+    }
+    let n = 0;
+    let total = 0;
+    act((g) => {
+      for (const id of ids) {
+        const p = g.plants.find((x) => x.id === id);
+        if (!p) continue;
+        if (what === 'water') n += waterById(g, id).ok ? 1 : 0;
+        else if (what === 'feed') n += feedById(g, id).ok ? 1 : 0;
+        else if (what === 'treat') n += treatById(g, id).ok ? 1 : 0;
+        else if (what === 'keep') { setFlag(g, id, 'keeper'); n++; }
+        else if (what === 'sell' && !p.keeper && !p.mother) { const v = plantValue(g, p); if (sellPlant(g, p).ok) { n++; total += v; } }
+      }
+    }, true);
+    toast(n ? (what === 'sell' ? `Sold ${n} for ${money(total)}.` : `Done for ${n} plant${n > 1 ? 's' : ''}.`) : 'Nothing to do.', n ? 'good' : 'bad');
+    if (what === 'sell') setChosen(new Set());
+  };
   const slotCap = roomSlotCap(s);
   const avgHealth = here.length ? here.reduce((a, p) => a + p.health, 0) / here.length : 0;
   const needWater = here.filter((p) => p.hydration < effectiveSpecies(p.sp, p.hy).env.dryBack + 4).length;
@@ -118,10 +210,47 @@ function Rooms({ s, roomId }: { s: GameState; roomId: number | null }) {
               <Stat label="Need water" value={needWater} sub={needWater ? 'check the bars' : 'all good'} tone={needWater ? 'blue' : undefined} />
               <Stat label="Infected" value={sick} tone={sick ? 'gold' : undefined} />
             </div>
+            {here.length > 3 && (
+              <div className="toolbar" role="group" aria-label="Filter and sort plants">
+                <input type="search" placeholder="Find a plant…" aria-label="Find a plant" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <div className="chips-row">
+                  {FILTERS.map((f) => (
+                    <button key={f.id} type="button" className={`chip-btn${filter === f.id ? ' on' : ''}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="sort">
+                  <span className="muted">Sort</span>
+                  <select value={sort} onChange={(e) => setSort(e.target.value as PlantSort)} aria-label="Sort plants">
+                    {SORTS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                  </select>
+                </label>
+                <Btn small kind={selecting ? 'primary' : 'default'} onClick={() => { setSelecting(!selecting); setChosen(new Set()); }}>
+                  {selecting ? 'Done selecting' : 'Select'}
+                </Btn>
+              </div>
+            )}
+            {selecting && (
+              <div className="bulkbar" role="group" aria-label="Actions for selected plants">
+                <b>{chosenPlants.length} selected</b>
+                <Btn small onClick={() => setChosen(new Set(shown.map((p) => p.id)))}>All shown</Btn>
+                <Btn small kind="ghost" onClick={() => setChosen(new Set())}>None</Btn>
+                <span className="grow-1" />
+                <Btn small icon="drop" disabled={!chosenPlants.length} onClick={() => bulk('water')}>Water</Btn>
+                <Btn small icon="plant" disabled={!chosenPlants.length} onClick={() => bulk('feed')}>Feed</Btn>
+                <Btn small icon="heart" disabled={!chosenPlants.length} onClick={() => bulk('treat')}>Treat</Btn>
+                <Btn small icon="star" disabled={!chosenPlants.length} onClick={() => bulk('keep')} title="Toggle the keeper mark: keepers are never auto-sold">Keeper</Btn>
+                <Btn small kind="gold" icon="coin" disabled={!chosenPlants.length} onClick={() => bulk('sell')}>Sell</Btn>
+                <Btn small kind="danger" icon="trash" disabled={!chosenPlants.length} onClick={() => bulk('discard')}>Discard</Btn>
+              </div>
+            )}
+            {narrowed && shown.length === 0 && <Empty icon="plant">No plants match. Clear the filter or search to see everything.</Empty>}
             <div className="slot-grid">
-              {room.slots.map((id, i) => {
+              {narrowed && shown.map((p) => <PlantCard key={p.id} p={p} s={s} selected={selecting && chosen.has(p.id)} onClick={() => (selecting ? toggle(p.id) : setUi({ plant: p.id }))} />)}
+              {!narrowed && room.slots.map((id, i) => {
                 const p = id == null ? null : s.plants.find((x) => x.id === id);
-                if (p) return <PlantCard key={p.id} p={p} s={s} onClick={() => setUi({ plant: p.id })} />;
+                if (p) return <PlantCard key={p.id} p={p} s={s} selected={selecting && chosen.has(p.id)} onClick={() => (selecting ? toggle(p.id) : setUi({ plant: p.id }))} />;
                 return (
                   <button key={`e${i}`} type="button" className="slot-empty" onClick={() => setPick(i)}>
                     <Icon name="plant" size={26} />
@@ -130,7 +259,7 @@ function Rooms({ s, roomId }: { s: GameState; roomId: number | null }) {
                   </button>
                 );
               })}
-              {room.slots.length < slotCap ? (
+              {!narrowed && (room.slots.length < slotCap ? (
                 <div className="slot-locked">
                   <Icon name="lock" size={20} />
                   <span>Another slot</span>
@@ -145,7 +274,7 @@ function Rooms({ s, roomId }: { s: GameState; roomId: number | null }) {
                     <span>Room is at capacity ({slotCap}). Raise the Cultivation department level or advance the facility stage for more.</span>
                   </div>
                 )
-              )}
+              ))}
             </div>
           </Panel>
         </div>

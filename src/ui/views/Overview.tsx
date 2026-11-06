@@ -5,15 +5,21 @@ import {
   type GameState,
 } from '../../engine';
 import { act, setUi, toast, useGame } from '../../store';
-import { Bar, Btn, Chip, Empty, Icon, PageHead, Panel, Req, Stat } from '../kit';
+import { Bar, Btn, Chip, Empty, Icon, PageHead, Panel, Req, Stat, Tabs } from '../kit';
 import { PlantArt } from '../PlantArt';
 import { Banner, BrandImage } from '../HeroArt';
 import { BRAND } from '../artwork';
 import { SPECIES, SPECIES_LIST } from '../../engine';
 import { dur, money, num } from '../format';
+import { guideProgress } from '../../engine';
+import { AdviceList } from './Goals';
+import { LineChart } from '../charts';
+import { setPrefs, usePrefs } from '../prefs';
+import { useState } from 'react';
 
 export function Overview() {
   const s = useGame();
+  const prefs = usePrefs();
   const stage = STAGES[s.stage - 1];
   const reqs = stageRequirements(s);
   const allMet = !!reqs && reqs.every((r) => r.met);
@@ -104,7 +110,10 @@ export function Overview() {
 
       <div className="grid g-main">
         <div className="stack">
-          <Guide s={s} />
+          <Panel title="What next?" icon="arrow" right={<Btn small kind="ghost" onClick={() => setUi({ view: 'goals' })}>All goals</Btn>}>
+            <AdviceList s={s} max={4} />
+          </Panel>
+          {prefs.guide && <GuidePanel s={s} />}
           <Panel title="Needs attention" icon="warn">
             {attention.length === 0 ? (
               <Empty icon="check">All quiet. Your plants are comfortable — plan your next experiment.</Empty>
@@ -124,6 +133,8 @@ export function Overview() {
               </div>
             )}
           </Panel>
+
+          <History s={s} />
 
           <Panel title="Laboratory work in progress" icon="flask">
             <Work s={s} />
@@ -174,33 +185,49 @@ function Work({ s }: { s: GameState }) {
   );
 }
 
-function Guide({ s }: { s: GameState }) {
-  const steps: { text: string; done: boolean; view?: string; label?: string }[] = [
-    { text: 'Buy seeds or a young plant at the Market.', done: s.plants.length + s.props.length + s.stats.sold > 0, view: 'market', label: 'Market' },
-    { text: 'Plant them in a grow-room slot (Cultivation → empty slot).', done: s.plants.length + s.stats.sold > 0, view: 'cultivation', label: 'Cultivation' },
-    { text: 'Keep them watered and fed. Click a plant to see exactly what it wants.', done: s.stats.matured > 0, view: 'cultivation', label: 'Care' },
-    { text: 'Sell your first mature plant.', done: s.stats.sold > 0, view: 'cultivation', label: 'Sell' },
-    { text: 'Start a research project — new techniques unlock everything else.', done: Object.keys(s.done).length > 0 || s.active.length > 0, view: 'research', label: 'Research' },
-    { text: 'Meet the requirements to expand to the Propagation Facility.', done: s.stage >= 2 },
-  ];
-  if (steps.every((x) => x.done) || s.stage >= 3) return null;
-  const nextIdx = steps.findIndex((x) => !x.done);
+function GuidePanel({ s }: { s: GameState }) {
+  const g = guideProgress(s);
+  if (g.complete) return null;
   return (
-    <Panel title="Getting started" icon="star" sub={`${steps.filter((x) => x.done).length}/${steps.length}`}>
+    <Panel title="Getting started" icon="star" sub={`${g.doneCount}/${g.steps.length}`} right={<Btn small kind="ghost" onClick={() => setPrefs({ guide: false })}>Hide</Btn>}>
       <ul className="reqs">
-        {steps.map((st, i) => (
-          <Req key={st.text} ok={st.done}>
-            <span style={{ color: st.done ? 'var(--muted)' : 'var(--text)', textDecoration: st.done ? 'line-through' : 'none' }}>{st.text}</span>
-            {i === nextIdx && st.view && (
-              <span style={{ marginLeft: 10 }}>
-                <Btn small kind="primary" onClick={() => setUi({ view: st.view! })}>
-                  {st.label}
-                </Btn>
-              </span>
-            )}
-          </Req>
+        {g.steps.map((st, i) => (
+          <li key={st.id} className={`req${st.done ? ' met' : ''}`}>
+            <Icon name={st.done ? 'check' : 'x'} size={13} />
+            <span>
+              <b style={{ color: st.done ? 'var(--muted)' : 'var(--text)', textDecoration: st.done ? 'line-through' : 'none' }}>{st.title}</b>
+              {i === g.current && <span className="item-sub" style={{ display: 'block' }}>{st.body}</span>}
+            </span>
+            {i === g.current && <Btn small kind="primary" onClick={() => setUi({ view: st.view })}>Go</Btn>}
+          </li>
         ))}
       </ul>
+    </Panel>
+  );
+}
+
+function History({ s }: { s: GameState }) {
+  const [metric, setMetric] = useState<'money' | 'rp' | 'net' | 'plants'>('money');
+  const r = s.series;
+  const cfg = {
+    money: { label: 'Money', values: r.money, colour: '#dfb85c', fmt: (v: number) => money(v) },
+    rp: { label: 'Research points', values: r.rp, colour: '#6cc7d3', fmt: (v: number) => num(v, 0) },
+    net: { label: 'Net income per second', values: r.net, colour: '#5fd08e', fmt: (v: number) => `${money(v)}/s` },
+    plants: { label: 'Plants growing', values: r.plants, colour: '#a891e8', fmt: (v: number) => String(v) },
+  }[metric];
+  return (
+    <Panel
+      title="Run history"
+      icon="overview"
+      right={
+        <Tabs
+          value={metric}
+          onChange={(m) => setMetric(m as typeof metric)}
+          tabs={[{ id: 'money', label: 'Money' }, { id: 'rp', label: 'Research' }, { id: 'net', label: 'Income' }, { id: 'plants', label: 'Plants' }]}
+        />
+      }
+    >
+      <LineChart title={cfg.label} times={r.t} series={[{ label: cfg.label, values: cfg.values, colour: cfg.colour }]} format={cfg.fmt} />
     </Panel>
   );
 }
