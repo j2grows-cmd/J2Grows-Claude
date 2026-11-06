@@ -1,0 +1,170 @@
+// Application shell: navigation, resource bar, toasts and the welcome-back report.
+
+import { type ReactNode } from 'react';
+import { STAGES, discoveryCount, legacyGain, canPrestige, type GameState } from './engine';
+import { dismissOffline, getOffline, getToasts, setUi, useGame, useUi } from './store';
+import { Icon, Modal, Btn, Stat } from './ui/kit';
+import { dur, money, num } from './ui/format';
+import { PlantDetailHost } from './ui/PlantDetail';
+import { Overview } from './ui/views/Overview';
+import { Cultivation } from './ui/views/Cultivation';
+import { TissueCulture } from './ui/views/TissueCulture';
+import { Genetics } from './ui/views/Genetics';
+import { Research } from './ui/views/Research';
+import { Laboratory } from './ui/views/Laboratory';
+import { Market } from './ui/views/Market';
+import { Collection } from './ui/views/Collection';
+import { Automation } from './ui/views/Automation';
+import { Legacy } from './ui/views/Legacy';
+import { Settings } from './ui/views/Settings';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  locked?: (s: GameState) => string | null;
+  pip?: (s: GameState) => { n: number; red?: boolean } | null;
+  view: () => ReactNode;
+}
+
+const NAV: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: 'overview', view: () => <Overview />, pip: (s) => {
+    const n = s.plants.filter((p) => p.inf || p.health < 35).length;
+    return n ? { n, red: true } : null;
+  } },
+  { id: 'cultivation', label: 'Cultivation', icon: 'grow', view: () => <Cultivation />, pip: (s) => {
+    const n = s.plants.filter((p) => p.stage === 'mature' && !p.mother && !p.keeper).length;
+    return n ? { n } : null;
+  } },
+  { id: 'tissue', label: 'Tissue Culture', icon: 'flask', view: () => <TissueCulture />, locked: (s) => (s.stage < 2 ? 'Stage 2' : null) },
+  { id: 'genetics', label: 'Genetics', icon: 'dna', view: () => <Genetics />, locked: (s) => (s.stage < 3 ? 'Stage 3' : null) },
+  { id: 'research', label: 'Research', icon: 'research', view: () => <Research />, pip: (s) => (s.active.length ? { n: s.active.length } : null) },
+  { id: 'lab', label: 'Laboratory', icon: 'lab', view: () => <Laboratory /> },
+  { id: 'market', label: 'Market', icon: 'market', view: () => <Market />, pip: (s) => (s.market.contracts.length ? { n: s.market.contracts.length } : null) },
+  { id: 'collection', label: 'Collection', icon: 'book', view: () => <Collection /> },
+  { id: 'automation', label: 'Automation', icon: 'bolt', view: () => <Automation /> },
+  { id: 'legacy', label: 'Legacy', icon: 'legacy', view: () => <Legacy />, locked: (s) => (s.stage < 4 && s.legacy.runs === 0 ? 'Stage 4' : null), pip: (s) => (canPrestige(s).ok && legacyGain(s) > 0 ? { n: legacyGain(s) } : null) },
+  { id: 'settings', label: 'Settings', icon: 'gear', view: () => <Settings /> },
+];
+
+export function App() {
+  const s = useGame();
+  const ui = useUi();
+  const toasts = getToasts();
+  const offline = getOffline();
+  const cur = NAV.find((n) => n.id === ui.view) ?? NAV[0];
+  const stage = STAGES[s.stage - 1];
+  const locked = cur.locked?.(s);
+
+  return (
+    <div className="app">
+      <nav className="side" aria-label="Main">
+        <div className="brand">
+          <div className="brand-mark">
+            <Icon name="plant" size={20} />
+          </div>
+          <div>
+            <div className="brand-name">J2Grows</div>
+            <div className="brand-tag">Botanical genetics</div>
+          </div>
+        </div>
+        {NAV.map((n) => {
+          const lock = n.locked?.(s);
+          const pip = n.pip?.(s);
+          return (
+            <button key={n.id} type="button" className={`nav${ui.view === n.id ? ' on' : ''}${lock ? ' locked' : ''}`} onClick={() => setUi({ view: n.id })} title={lock ? `Unlocks at ${lock}` : undefined}>
+              <Icon name={lock ? 'lock' : n.icon} />
+              <span>{n.label}</span>
+              {pip && <span className={`pip${pip.red ? ' red' : ''}`}>{pip.n > 99 ? '99+' : pip.n}</span>}
+            </button>
+          );
+        })}
+        <div className="side-foot">One-time purchase · no microtransactions</div>
+      </nav>
+
+      <header className="top">
+        <div className="stage-pill">
+          <b>{stage.name}</b>
+          <span>
+            Stage {s.stage} · {dur(s.totalTime)} played
+          </span>
+        </div>
+        <div className="top-gap" />
+        <div className="res money" title="Money">
+          <Icon name="coin" size={16} />
+          <b>{money(s.money)}</b>
+          <small>{Math.abs(s.income - s.expense) < 0.005 ? '' : s.income - s.expense > 0 ? '+' : '−'}{num(Math.abs(s.income - s.expense), 2)}/s</small>
+        </div>
+        <div className="res rp" title="Research points">
+          <Icon name="rp" size={16} />
+          <b>{num(s.rp)}</b>
+          <small>RP</small>
+        </div>
+        <div className="res" title="Unique discoveries">
+          <Icon name="star" size={16} />
+          <b>{discoveryCount(s)}</b>
+          <small>discoveries</small>
+        </div>
+        {s.legacy.points > 0 && (
+          <div className="res legacy" title="Unspent legacy points">
+            <Icon name="legacy" size={16} />
+            <b>{s.legacy.points}</b>
+            <small>legacy</small>
+          </div>
+        )}
+      </header>
+
+      <main className="main">
+        {locked ? (
+          <div className="page">
+            <div className="panel">
+              <div className="empty">
+                <Icon name="lock" size={32} />
+                <p>
+                  <b>{cur.label}</b> unlocks at {locked}. Keep growing — check the Overview for what you need.
+                </p>
+                <Btn onClick={() => setUi({ view: 'overview' })}>Back to overview</Btn>
+              </div>
+            </div>
+          </div>
+        ) : (
+          cur.view()
+        )}
+      </main>
+
+      <PlantDetailHost />
+
+      <div className="toasts" aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast ${t.kind}`}>
+            {t.msg}
+          </div>
+        ))}
+      </div>
+
+      {offline && (
+        <Modal
+          title="Welcome back"
+          onClose={dismissOffline}
+          footer={
+            <Btn kind="primary" onClick={dismissOffline}>
+              Back to the lab
+            </Btn>
+          }
+        >
+          <p className="muted">
+            You were away for {dur(offline.seconds)}. Your laboratory kept working for {dur(offline.credited)} at reduced efficiency (offline caps and efficiency can be raised through research and upgrades).
+          </p>
+          <div className="stats-row">
+            <Stat label="Money" value={<span className={offline.money >= 0 ? 'gold' : 'red'}>{offline.money >= 0 ? '+' : '−'}{money(Math.abs(offline.money))}</span>} />
+            <Stat label="Research" value={`+${num(offline.rp)} RP`} tone="blue" />
+            <Stat label="Matured" value={offline.matured} tone="green" />
+            <Stat label="Discoveries" value={offline.discoveries} tone="purple" />
+            <Stat label="Techs done" value={offline.techs} />
+            <Stat label="Lost" value={offline.died} sub={offline.neglected ? `${offline.neglected} need care` : undefined} />
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
